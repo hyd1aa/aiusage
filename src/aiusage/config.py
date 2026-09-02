@@ -5,12 +5,14 @@ from pathlib import Path
 from .providers import REGISTRY
 
 POSITIONS = ("top-left", "top-center", "top-right", "center", "bottom-left", "bottom-center", "bottom-right")
+THEMES = ("white", "green")
 DEMO_DEFAULT = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
 
 
 @dataclass
 class Config:
     language: str = "zh"
+    theme: str = "white"
     position: str = "center"
     real_providers: list[str] = field(default_factory=lambda: ["codex", "grok"])
     demo_providers: list[str] = field(default_factory=lambda: list(DEMO_DEFAULT))
@@ -41,12 +43,15 @@ def load(path: Path | None = None) -> Config:
             key, value = line.split("=", 1)
             values[key.strip()] = value.strip()
     cfg.language = values.get("language", '"zh"').strip('"')
+    cfg.theme = values.get("theme", '"white"').strip('"')
     cfg.position = values.get("position", '"center"').strip('"')
     for attr in ("real_providers", "demo_providers"):
         if attr in values:
             setattr(cfg, attr, _array(values[attr]))
     if cfg.language not in ("en", "zh"):
         cfg.language = "zh"
+    if cfg.theme not in THEMES:
+        cfg.theme = "white"
     if cfg.position not in POSITIONS:
         cfg.position = "center"
     cfg.real_providers = _valid(cfg.real_providers) or ["codex", "grok"]
@@ -64,6 +69,7 @@ def save(cfg: Config, path: Path | None = None) -> bool:
         return ", ".join(f'"{item}"' for item in items)
     body = (
         f'language = "{cfg.language}"\n'
+        f'theme = "{cfg.theme}"\n'
         f'position = "{cfg.position}"\n'
         f'real_providers = [{quoted(_valid(cfg.real_providers))}]\n'
         f'demo_providers = [{quoted(_valid(cfg.demo_providers))}]\n'

@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -8,7 +9,7 @@ from aiusage import config
 from aiusage.cli import Dashboard
 from aiusage.models import Availability, ProviderUsage, RateLimitWindow
 from aiusage.providers import ProviderAdapter, REGISTRY
-from aiusage.render import column_count, dashboard, visible_len
+from aiusage.render import column_count, dashboard, reset_text, visible_len
 
 
 class ProviderEdgeCaseTests(unittest.TestCase):
@@ -55,6 +56,14 @@ class ConfigEdgeCaseTests(unittest.TestCase):
             target = Path(directory) / "config.toml"
             target.write_text('language = "en"\n')
             self.assertEqual(config.load(target).language, "en")
+
+    def test_existing_theme_preference_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            target.write_text('language = "en"\ntheme = "green"\n')
+            loaded = config.load(target)
+            self.assertEqual(loaded.language, "en")
+            self.assertEqual(loaded.theme, "green")
 
     def test_broken_config_falls_back(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -103,6 +112,55 @@ class RenderingEdgeCaseTests(unittest.TestCase):
         lines = dashboard(80, 24, self.providers[:6], None, language="zh", demo=True)
         self.assertTrue(all(visible_len(line) <= 80 for line in lines))
         self.assertIn("[演示]", "\n".join(lines))
+
+    def test_single_outer_box_and_centered_title(self):
+        lines = dashboard(80, 24, self.providers[:6], None, language="zh", demo=True)
+        output = "\n".join(lines)
+        self.assertEqual(output.count("┌"), 1)
+        self.assertEqual(output.count("└"), 1)
+        top = next(line for line in lines if "┌" in line)
+        left, right = top.split("AI USAGE [演示]")
+        self.assertLessEqual(abs(left.count("─") - right.count("─")), 1)
+
+    def test_two_four_and_six_provider_layouts(self):
+        self.assertEqual(column_count(2, 76), 1)
+        self.assertEqual(column_count(4, 76), 2)
+        self.assertEqual(column_count(6, 76), 3)
+        for count in (2, 4, 6):
+            output = "\n".join(dashboard(80, 24, self.providers[:count], None))
+            self.assertEqual(output.count("┌"), 1)
+
+    def test_reset_dates_are_localized_and_include_timezone(self):
+        epoch = 1788375056
+        english = reset_text(epoch, "en")
+        chinese = reset_text(epoch, "zh")
+        self.assertRegex(english, r"^[A-Z][a-z]{2} \d{2} \d{2}:\d{2} \S+$")
+        self.assertRegex(chinese, r"^\d{1,2}月\d{2}日 \d{2}:\d{2} \S+$")
+        self.assertNotIn("Sep", chinese)
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX timezone support")
+    def test_reset_epoch_uses_selected_local_timezone(self):
+        original = os.environ.get("TZ")
+        try:
+            os.environ["TZ"] = "America/New_York"
+            time.tzset()
+            self.assertTrue(reset_text(1788375056, "en").endswith("EDT"))
+            os.environ["TZ"] = "Asia/Shanghai"
+            time.tzset()
+            self.assertTrue(reset_text(1788375056, "zh").endswith("CST"))
+        finally:
+            if original is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = original
+            time.tzset()
+
+    def test_white_and_green_themes_emit_distinct_styles(self):
+        white = "\n".join(dashboard(80, 24, self.providers[:2], None, theme="white", color=True))
+        green = "\n".join(dashboard(80, 24, self.providers[:2], None, theme="green", color=True))
+        self.assertIn("\x1b[1;97;40m", white)
+        self.assertIn("\x1b[1;92;40m", green)
+        self.assertNotEqual(white, green)
 
     def test_no_color_snapshot_contains_no_color_sgr(self):
         with mock.patch.dict(os.environ, {"NO_COLOR": "1"}):

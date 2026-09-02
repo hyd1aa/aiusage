@@ -14,6 +14,7 @@ AIUsage runs directly in your terminal. It needs no web panel and no background 
 
 - Verified real usage readers for Codex and Grok
 - Live switching between Chinese and English
+- White theme by default, with a green theme available through `T`
 - Provider selection and ordering
 - Responsive one-, two-, and three-column layouts
 - Live system clock and 30-second usage refresh
@@ -27,18 +28,18 @@ AIUsage runs directly in your terminal. It needs no web panel and no background 
 Run `aiusage`. Real mode displays only providers with reliable local data sources. The following illustrates the layout; percentages and reset times come from your own installed clients.
 
 ```text
-AI USAGE  System 12:34:56
-              ┌──────────────────────────────────────────┐
-              │ CODEX                                    │
-              │ 5h     ████████░░  83%                   │
-              │ Reset: 14:46                             │
-              └──────────────────────────────────────────┘
-
-              ┌──────────────────────────────────────────┐
-              │ GROK                                     │
-              │ Weekly ███████░░░  72%                   │
-              │ Reset: Sep 05                            │
-              └──────────────────────────────────────────┘
+┌─────────────────── AI USAGE ───────────────────┐
+│                                                │
+│    CODEX                                       │
+│    5h     ████████░░  83%                      │
+│    Reset: Sep 03 14:46 CST                     │
+│                                                │
+│    GROK                                        │
+│    Weekly ███████░░░  72%                      │
+│    Reset: Sep 05 23:14 CST                     │
+│                                                │
+│ System: 2026-09-02 12:34:56 CST                │
+└────────────────────────────────────────────────┘
 ```
 
 ### Demo mode
@@ -46,16 +47,13 @@ AI USAGE  System 12:34:56
 `aiusage --demo` uses deterministic local fixtures to preview six providers in a 3×2 layout. The dashboard is prominently marked **`[DEMO]`**. Claude, Gemini, DeepSeek, Kimi, and other demo values are not real usage.
 
 ```text
-AI USAGE [DEMO]  System 12:34:56
-┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
-│ CODEX                  │ │ GROK                   │ │ DEEPSEEK               │
-│ 5h     ████████░░  83% │ │ Cycle  ███████░░░  72% │ │ Daily  ███████░░░  66% │
-└────────────────────────┘ └────────────────────────┘ └────────────────────────┘
-
-┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
-│ CLAUDE                 │ │ GEMINI                 │ │ KIMI                   │
-│ 5h     █████░░░░░  48% │ │ Daily  █████████░  91% │ │ Monthl ████░░░░░░  37% │
-└────────────────────────┘ └────────────────────────┘ └────────────────────────┘
+┌─────────────────────────────── AI USAGE [DEMO] ───────────────────────────────┐
+│ CODEX                     GROK                      DEEPSEEK                  │
+│ 5h     ████████░░  83%    Cycle  ███████░░░  72%    Daily  ███████░░░  66%    │
+│                                                                               │
+│ CLAUDE                    GEMINI                    KIMI                      │
+│ 5h     █████░░░░░  48%    Daily  █████████░  91%    Monthl ████░░░░░░  37%    │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 The complete 80×24 text capture is available at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt). A future PNG can be placed at `docs/screenshots/aiusage-demo.png`; captures must use demo mode and exclude hostnames, IP addresses, shell prompts, and unrelated panes.
@@ -124,6 +122,7 @@ Real mode never substitutes demo values. An enabled provider without a verified 
 
 | Key | Action |
 | --- | --- |
+| `T` | Switch between white and green themes |
 | `L` | Switch between Chinese and English |
 | `P` | Cycle the whole-dashboard position |
 | `S` | Select, enable, and reorder providers |
@@ -147,7 +146,7 @@ Preferences are stored at:
 ~/.config/aiusage/config.toml
 ```
 
-Only language, position, enabled providers, and ordering are stored—never tokens, cookies, credentials, or usage snapshots. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back without blocking startup.
+Only language, theme, position, enabled providers, and ordering are stored—never tokens, cookies, credentials, or usage snapshots. New users start with the white theme; an existing `theme = "green"` preference is preserved. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back without blocking startup.
 
 See [`config.example.toml`](config.example.toml). Set `NO_COLOR` to disable color styling; Unicode borders and progress bars remain as structural UI elements.
 

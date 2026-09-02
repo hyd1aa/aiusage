@@ -26,7 +26,8 @@ class AiUsageTests(unittest.TestCase):
         board.refresh()
         lines = board.frame(80, 24)
         self.assertEqual(column_count(6, 80), 3)
-        self.assertEqual(sum(line.count("┌") for line in lines), 6)
+        self.assertEqual(sum(line.count("┌") for line in lines), 1)
+        self.assertEqual(sum(line.count("└") for line in lines), 1)
         self.assertLessEqual(len(lines), 24)
         self.assertLessEqual(max(map(len, lines)), 80)
         self.assertIn("[演示]", "\n".join(lines))
@@ -52,6 +53,17 @@ class AiUsageTests(unittest.TestCase):
             self.assertEqual(loaded.language, "zh")
             self.assertEqual(loaded.position, "bottom-left")
             self.assertIn("glm", loaded.demo_providers)
+
+    def test_white_theme_is_default(self):
+        self.assertEqual(config.Config().theme, "white")
+
+    def test_theme_toggle_persists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            with mock.patch.object(config, "config_path", return_value=target):
+                board = Dashboard(True, config.Config())
+                board.key(b"T")
+            self.assertEqual(config.load(target).theme, "green")
 
     def test_real_defaults_only_verified_adapters(self):
         self.assertEqual(config.Config().real_providers, ["codex", "grok"])

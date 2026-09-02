@@ -19,9 +19,10 @@ REFRESH_SECONDS = 30
 
 
 class Dashboard:
-    def __init__(self, demo=False, cfg=None):
+    def __init__(self, demo=False, cfg=None, color=False):
         self.demo = demo
         self.cfg = cfg or config.load()
+        self.color = color
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.updated = None
@@ -68,9 +69,9 @@ class Dashboard:
         width, height = width or size.columns, height or size.lines
         with self.lock:
             if self.selecting:
-                return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language)
+                return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language, self.cfg.theme, self.color)
             states = [self.states.get(key, ProviderUsage(key, REGISTRY[key].name, Availability.UNAVAILABLE)) for key in self.enabled]
-            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo)
+            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo, self.cfg.theme, self.color)
 
     def key(self, key):
         if self.selecting:
@@ -103,6 +104,10 @@ class Dashboard:
             return True
         if key in (b"l", b"L"):
             self.cfg.language = "zh" if self.cfg.language == "en" else "en"
+            config.save(self.cfg)
+        elif key in (b"t", b"T"):
+            index = config.THEMES.index(self.cfg.theme)
+            self.cfg.theme = config.THEMES[(index+1) % len(config.THEMES)]
             config.save(self.cfg)
         elif key in (b"p", b"P"):
             index = config.POSITIONS.index(self.cfg.position)
@@ -150,7 +155,8 @@ def _args(argv=None):
 
 def main(argv=None):
     args = _args(argv)
-    board = Dashboard(args.demo)
+    color = not args.snapshot and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
+    board = Dashboard(args.demo, color=color)
     if args.snapshot:
         board.refresh()
         try:

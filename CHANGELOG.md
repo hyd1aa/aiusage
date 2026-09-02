@@ -10,6 +10,10 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 - Made Simplified Chinese the default UI for new users while preserving saved
   language preferences.
 - Added separate Chinese and English project documentation.
+- Reworked the dashboard as one centered outer box without per-provider boxes.
+- Added persistent white and green themes with the `T` shortcut.
+- Localized reset dates and added explicit timezone labels to reset and system
+  times.
 
 ## [0.1.0] - 2026-09-02
 

@@ -1,4 +1,5 @@
 language = "zh"
+theme = "white"
 position = "center"
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
