@@ -4,6 +4,7 @@ TEXT = {
         "providers": "Providers", "unavailable": "Unavailable", "not_installed": "Not installed",
         "not_supported": "Not supported", "stale": "stale", "left": "left",
         "help": "T Theme  L Language  P Position  S Providers  R Refresh  Q Exit",
+        "help_compact": "T Theme L Lang P Pos S Prov R Refresh Q Exit",
         "select_help": "↑/↓ Select  Space Toggle  U/D Reorder  Enter Save  Esc Cancel",
     },
     "zh": {
@@ -11,6 +12,7 @@ TEXT = {
         "providers": "服务", "unavailable": "不可用", "not_installed": "未安装",
         "not_supported": "不支持", "stale": "数据陈旧", "left": "剩余",
         "help": "T 主题  L 语言  P 位置  S 服务  R 刷新  Q 退出",
+        "help_compact": "T主题 L语言 P位置 S服务 R刷新 Q退出",
         "select_help": "↑/↓ 选择  空格 启用  U/D 排序  Enter 保存  Esc 取消",
     },
 }

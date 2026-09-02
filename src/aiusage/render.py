@@ -10,23 +10,26 @@ MIN_CELL_WIDTH = 24
 CELL_GAP = 2
 RESET_STYLE = "\x1b[0m"
 THEME_STYLE = {
-    "white": {"normal": "\x1b[37;40m", "strong": "\x1b[1;97;40m", "muted": "\x1b[90;40m"},
-    "green": {"normal": "\x1b[32;40m", "strong": "\x1b[1;92;40m", "muted": "\x1b[32;40m"},
+    "white": {"normal": "\x1b[37m", "strong": "\x1b[1;97m", "muted": "\x1b[90m"},
+    "green": {"normal": "\x1b[32m", "strong": "\x1b[1;92m", "muted": "\x1b[32m"},
 }
 
 
 def visible_len(value):
-    return sum(
-        2 if unicodedata.east_asian_width(char) in ("W", "F") else 1
-        for char in ANSI.sub("", value)
-    )
+    return sum(_char_width(char) for char in ANSI.sub("", value))
+
+
+def _char_width(char):
+    if unicodedata.combining(char) or unicodedata.category(char).startswith("C"):
+        return 0
+    return 2 if unicodedata.east_asian_width(char) in ("W", "F") else 1
 
 
 def _fit(value, width):
     result = []
     used = 0
     for char in value:
-        size = 2 if unicodedata.east_asian_width(char) in ("W", "F") else 1
+        size = _char_width(char)
         if used + size > max(0, width):
             break
         result.append(char)
@@ -64,7 +67,11 @@ def reset_text(epoch, language="en"):
 def system_text(language="en"):
     value = dt.datetime.now().astimezone()
     zone = _timezone_name(value)
-    return f"{tr(language, 'system')}: {value:%Y-%m-%d %H:%M:%S} {zone}"
+    return _label_value(tr(language, "system"), f"{value:%Y-%m-%d %H:%M:%S} {zone}", language)
+
+
+def _label_value(label, value, language):
+    return f"{label}：{value}" if language == "zh" else f"{label}: {value}"
 
 
 def column_count(count, width):
@@ -83,14 +90,14 @@ def _provider_lines(provider: ProviderUsage, width: int, language: str):
         lines.append(tr(language, provider.availability.value))
         return [_fit(line, width) for line in lines]
 
-    bar_width = max(3, min(10, width - 13))
+    bar_width = max(3, min(10, width - 17))
     for window in provider.windows[:2]:
         remaining = max(0, min(100, int(window.remaining_percent)))
         fill = round(remaining * bar_width / 100)
         bar = "█" * fill + "░" * (bar_width - fill)
         label = "Weekly" if window.label == "Week" and language == "en" else window.label
-        lines.append(f"{_fit(label, 6):<6} {bar} {remaining:>3}%")
-        lines.append(f"{tr(language, 'reset')}: {reset_text(window.reset_at, language)}")
+        lines.append(f"{_fit(label, 6):<6} {bar} {remaining:>3}% {tr(language, 'left')}")
+        lines.append(_label_value(tr(language, "reset"), reset_text(window.reset_at, language), language))
     return [_fit(line, width) for line in lines]
 
 
@@ -153,17 +160,17 @@ def dashboard(
         return _position([_fit(title, width)][:height], width, height, position)
 
     help_text = tr(language, "help")
+    compact_help = tr(language, "help_compact")
     updated_at = updated.astimezone() if updated else None
-    update_zone = _timezone_name(updated_at) if updated_at else ""
     stamp = updated_at.strftime("%H:%M:%S") if updated_at else "--:--:--"
-    update_text = f"{tr(language, 'updated')}: {stamp}" + (f" {update_zone}" if update_zone else "")
+    update_text = _label_value(tr(language, "updated"), stamp, language)
 
     content_capacity = max(1, width - 4)
     columns = column_count(len(providers), content_capacity)
     preferred_cell = {1: 40, 2: 27, 3: 24}[columns]
     cell_width = min(preferred_cell, max(1, (content_capacity - CELL_GAP * (columns - 1)) // columns))
     grid_width = cell_width * columns + CELL_GAP * (columns - 1)
-    desired_outer = max(44, grid_width + 4, visible_len(help_text) + 4, visible_len(system_text(language)) + 4)
+    desired_outer = max(grid_width + 4, visible_len(compact_help) + 4, visible_len(system_text(language)) + 4)
     outer_width = min(width, desired_outer)
     inner_width = outer_width - 2
     content_width = max(1, inner_width - 2)
@@ -171,17 +178,17 @@ def dashboard(
     grid_width = cell_width * columns + CELL_GAP * (columns - 1)
 
     blocks = [_provider_lines(provider, cell_width, language) for provider in providers]
-    block_height = max((len(block) for block in blocks), default=1)
-    blocks = [block + [""] * (block_height - len(block)) for block in blocks]
 
     content = [""]
     content_kinds = ["normal"]
     rows = (len(blocks) + columns - 1) // columns
     for row_index in range(rows):
         group = blocks[row_index * columns:(row_index + 1) * columns]
+        row_height = max((len(block) for block in group), default=1)
+        group = [block + [""] * (row_height - len(block)) for block in group]
         group_width = len(group) * cell_width + max(0, len(group) - 1) * CELL_GAP
         grid_left = max(0, (content_width - group_width) // 2)
-        for line_index in range(block_height):
+        for line_index in range(row_height):
             value = (" " * CELL_GAP).join(_pad(block[line_index], cell_width) for block in group)
             content.append(" " + " " * grid_left + value)
             content_kinds.append("strong" if line_index == 0 else "normal")
@@ -189,8 +196,9 @@ def dashboard(
             content.append("")
             content_kinds.append("normal")
 
-    content.extend(["", " " + system_text(language), " " + update_text, " " + help_text])
-    content_kinds.extend(["normal", "normal", "muted", "muted"])
+    chosen_help = help_text if visible_len(help_text) <= content_width - 1 else compact_help
+    content.extend(["", " " + system_text(language), " " + update_text, "", " " + chosen_help, ""])
+    content_kinds.extend(["normal", "normal", "muted", "normal", "muted", "normal"])
 
     max_content_lines = max(0, height - 2)
     if len(content) > max_content_lines:

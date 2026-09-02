@@ -31,11 +31,11 @@ Run `aiusage`. Real mode displays only providers with reliable local data source
 ┌─────────────────── AI USAGE ───────────────────┐
 │                                                │
 │    CODEX                                       │
-│    5h     ████████░░  83%                      │
+│    5h     ████████░░  83% left                 │
 │    Reset: Sep 03 14:46 CST                     │
 │                                                │
 │    GROK                                        │
-│    Weekly ███████░░░  72%                      │
+│    Weekly ███████░░░  72% left                 │
 │    Reset: Sep 05 23:14 CST                     │
 │                                                │
 │ System: 2026-09-02 12:34:56 CST                │

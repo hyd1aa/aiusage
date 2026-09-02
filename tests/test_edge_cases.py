@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import time
 import unittest
@@ -9,7 +10,7 @@ from aiusage import config
 from aiusage.cli import Dashboard
 from aiusage.models import Availability, ProviderUsage, RateLimitWindow
 from aiusage.providers import ProviderAdapter, REGISTRY
-from aiusage.render import column_count, dashboard, reset_text, visible_len
+from aiusage.render import ANSI, column_count, dashboard, reset_text, visible_len
 
 
 class ProviderEdgeCaseTests(unittest.TestCase):
@@ -130,6 +131,11 @@ class RenderingEdgeCaseTests(unittest.TestCase):
             output = "\n".join(dashboard(80, 24, self.providers[:count], None))
             self.assertEqual(output.count("┌"), 1)
 
+    def test_three_column_metrics_do_not_truncate_left_label(self):
+        output = "\n".join(dashboard(80, 24, self.providers[:6], None, language="en"))
+        self.assertNotIn("% lef ", output)
+        self.assertIn("% left", output)
+
     def test_reset_dates_are_localized_and_include_timezone(self):
         epoch = 1788375056
         english = reset_text(epoch, "en")
@@ -158,9 +164,36 @@ class RenderingEdgeCaseTests(unittest.TestCase):
     def test_white_and_green_themes_emit_distinct_styles(self):
         white = "\n".join(dashboard(80, 24, self.providers[:2], None, theme="white", color=True))
         green = "\n".join(dashboard(80, 24, self.providers[:2], None, theme="green", color=True))
-        self.assertIn("\x1b[1;97;40m", white)
-        self.assertIn("\x1b[1;92;40m", green)
+        self.assertIn("\x1b[1;97m", white)
+        self.assertIn("\x1b[1;92m", green)
         self.assertNotEqual(white, green)
+
+    def test_themes_never_emit_background_color(self):
+        outputs = [
+            "\n".join(dashboard(80, 24, self.providers[:2], None, theme=theme, color=True))
+            for theme in ("white", "green")
+        ]
+        for output in outputs:
+            codes = re.findall(r"\x1b\[([0-9;]+)m", output)
+            self.assertFalse(any(part.isdigit() and 40 <= int(part) <= 49 for code in codes for part in code.split(";")))
+        self.assertEqual(ANSI.sub("", outputs[0]), ANSI.sub("", outputs[1]))
+
+    def test_two_provider_box_height_is_content_driven(self):
+        def box_height(terminal_height):
+            lines = dashboard(80, terminal_height, self.providers[:2], None)
+            top = next(index for index, line in enumerate(lines) if "┌" in line)
+            bottom = next(index for index, line in enumerate(lines) if "└" in line)
+            return bottom - top + 1
+        self.assertEqual(box_height(24), box_height(40))
+
+    def test_two_provider_vertical_spacing_is_compact(self):
+        lines = dashboard(80, 24, self.providers[:2], None)
+        visible = [line.strip(" │") for line in lines]
+        first = next(index for index, line in enumerate(visible) if line.startswith("CODEX"))
+        second = next(index for index, line in enumerate(visible) if line.startswith("GROK"))
+        system = next(index for index, line in enumerate(visible) if line.startswith("System"))
+        self.assertLessEqual(second - first, 4)
+        self.assertLessEqual(system - second, 5)
 
     def test_no_color_snapshot_contains_no_color_sgr(self):
         with mock.patch.dict(os.environ, {"NO_COLOR": "1"}):
