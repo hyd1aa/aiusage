@@ -1,0 +1,196 @@
+import argparse
+import os
+import select
+import shutil
+import signal
+import sys
+import termios
+import threading
+import time
+import tty
+
+from . import config
+from .models import Availability, ProviderUsage
+from .providers import REGISTRY, demo_usage
+from .render import dashboard, selector
+
+REFRESH_SECONDS = 30
+
+
+class Dashboard:
+    def __init__(self, demo=False, cfg=None):
+        self.demo = demo
+        self.cfg = cfg or config.load()
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+        self.updated = None
+        self.states = {}
+        self.selecting = False
+        self.cursor = 0
+        self.draft = []
+
+    @property
+    def enabled(self):
+        return self.cfg.demo_providers if self.demo else self.cfg.real_providers
+
+    @enabled.setter
+    def enabled(self, value):
+        if self.demo:
+            self.cfg.demo_providers = value
+        else:
+            self.cfg.real_providers = value
+
+    def refresh(self):
+        success = False
+        for key in list(self.enabled):
+            if self.demo:
+                state = demo_usage(key)
+            else:
+                fresh = REGISTRY[key].read()
+                old = self.states.get(key)
+                if fresh.availability == Availability.UNAVAILABLE and old and old.windows:
+                    state = ProviderUsage(old.key, old.name, old.availability, old.windows, True, fresh.error)
+                else:
+                    state = fresh
+            self.states[key] = state
+            success = success or state.availability == Availability.AVAILABLE
+        if success:
+            self.updated = time_now()
+
+    def worker(self):
+        self.refresh()
+        while not self.stop.wait(REFRESH_SECONDS):
+            self.refresh()
+
+    def frame(self, width=None, height=None):
+        size = shutil.get_terminal_size((80, 24))
+        width, height = width or size.columns, height or size.lines
+        with self.lock:
+            if self.selecting:
+                return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language)
+            states = [self.states.get(key, ProviderUsage(key, REGISTRY[key].name, Availability.UNAVAILABLE)) for key in self.enabled]
+            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo)
+
+    def key(self, key):
+        if self.selecting:
+            if key in (b"\x1b",):
+                self.selecting = False
+            elif key in (b"\r", b"\n"):
+                self.enabled = list(self.draft)
+                config.save(self.cfg)
+                self.selecting = False
+                self.refresh()
+            elif key in (b"j", b"J", b"\x1b[B"):
+                self.cursor = min(len(REGISTRY)-1, self.cursor+1)
+            elif key in (b"k", b"K", b"\x1b[A"):
+                self.cursor = max(0, self.cursor-1)
+            elif key == b" ":
+                current = list(REGISTRY)[self.cursor]
+                if current in self.draft:
+                    self.draft.remove(current)
+                else:
+                    self.draft.append(current)
+            elif key in (b"u", b"U", b"d", b"D"):
+                current = list(REGISTRY)[self.cursor]
+                if current in self.draft:
+                    index = self.draft.index(current)
+                    step = -1 if key.lower() == b"u" else 1
+                    target = max(0, min(len(self.draft)-1, index+step))
+                    self.draft[index], self.draft[target] = self.draft[target], self.draft[index]
+            return False
+        if key in (b"q", b"Q", b"\x1b", b"\x03"):
+            return True
+        if key in (b"l", b"L"):
+            self.cfg.language = "zh" if self.cfg.language == "en" else "en"
+            config.save(self.cfg)
+        elif key in (b"p", b"P"):
+            index = config.POSITIONS.index(self.cfg.position)
+            self.cfg.position = config.POSITIONS[(index+1) % len(config.POSITIONS)]
+            config.save(self.cfg)
+        elif key in (b"s", b"S"):
+            self.selecting = True
+            self.draft = list(self.enabled)
+            self.cursor = 0
+        elif key in (b"r", b"R"):
+            self.refresh()
+        return False
+
+
+def time_now():
+    import datetime as dt
+    return dt.datetime.now().astimezone()
+
+
+def paint(lines, previous):
+    height = shutil.get_terminal_size((80, 24)).lines
+    parts = []
+    for row in range(1, min(height, max(len(previous), len(lines)))+1):
+        text = lines[row-1] if row <= len(lines) else ""
+        old = previous[row-1] if row <= len(previous) else None
+        if text != old:
+            parts.append(f"\x1b[{row};1H\x1b[2K{text}")
+    if parts:
+        sys.stdout.write("".join(parts))
+        sys.stdout.flush()
+    return lines
+
+
+def _args(argv=None):
+    parser = argparse.ArgumentParser(prog="aiusage")
+    parser.add_argument("--demo", action="store_true", help="use isolated local demo data")
+    parser.add_argument("--snapshot", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--size", default="", help=argparse.SUPPRESS)
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = _args(argv)
+    board = Dashboard(args.demo)
+    if args.snapshot:
+        board.refresh()
+        width, height = (map(int, args.size.lower().split("x"))) if args.size else (80, 24)
+        print("\n".join(board.frame(width, height)))
+        return 0
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        print("aiusage requires an interactive terminal", file=sys.stderr)
+        return 2
+    original = termios.tcgetattr(sys.stdin.fileno())
+    thread = threading.Thread(target=board.worker, daemon=True)
+    quitting = False
+    def request_exit(_signum=None, _frame=None):
+        nonlocal quitting
+        quitting = True
+    old_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+    for sig in old_handlers:
+        signal.signal(sig, request_exit)
+    signal.signal(signal.SIGWINCH, lambda _s, _f: None)
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?7l")
+        sys.stdout.flush()
+        thread.start()
+        prior = []
+        while not quitting:
+            prior = paint(board.frame(), prior)
+            ready, _, _ = select.select([sys.stdin], [], [], 0.2)
+            if ready:
+                key = os.read(sys.stdin.fileno(), 1)
+                if key == b"\x1b" and board.selecting:
+                    extra, _, _ = select.select([sys.stdin], [], [], 0.02)
+                    if extra:
+                        key += os.read(sys.stdin.fileno(), 2)
+                if board.key(key):
+                    break
+    finally:
+        board.stop.set()
+        termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, original)
+        sys.stdout.write("\x1b[?7h\x1b[?25h\x1b[?1049l\x1b[0m")
+        sys.stdout.flush()
+        for sig, handler in old_handlers.items():
+            signal.signal(sig, handler)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
