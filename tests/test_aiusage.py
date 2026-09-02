@@ -5,8 +5,9 @@ from unittest import mock
 
 from aiusage import config
 from aiusage.cli import Dashboard
+from aiusage.demo import demo_usage
 from aiusage.models import Availability
-from aiusage.providers import REGISTRY, ProviderAdapter, demo_usage
+from aiusage.providers import REGISTRY, ProviderAdapter
 from aiusage.render import column_count
 
 

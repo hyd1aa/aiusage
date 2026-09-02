@@ -10,8 +10,9 @@ import time
 import tty
 
 from . import __version__, config
+from .demo import demo_usage
 from .models import Availability, ProviderUsage
-from .providers import REGISTRY, demo_usage
+from .providers import REGISTRY
 from .render import dashboard, selector
 
 REFRESH_SECONDS = 30
