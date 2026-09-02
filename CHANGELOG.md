@@ -5,15 +5,30 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-03
+
+### Added
+
+- Added persistent White and Green foreground themes with the `T` shortcut.
+- Added explicit timezone labels to reset timestamps and system time.
+- Added localized Chinese month and date formatting.
+
 ### Changed
 
-- Made Simplified Chinese the default UI for new users while preserving saved
-  language preferences.
-- Added separate Chinese and English project documentation.
-- Reworked the dashboard as one centered outer box without per-provider boxes.
-- Added persistent white and green themes with the `T` shortcut.
-- Localized reset dates and added explicit timezone labels to reset and system
-  times.
+- Simplified Chinese is now the default language for new users while saved
+  language preferences remain unchanged.
+- Restored a compact single-box layout with a centered title and natural,
+  content-driven sizing.
+- Centered compact 2×2 and 3×2 provider grids without stretching them to fill
+  the terminal.
+- Expanded regression coverage to 42 tests, including PTY cleanup, timezone,
+  theme, responsive layout, and Chinese display-width checks.
+
+### Fixed
+
+- Stopped themes from overriding the terminal background; themes now affect
+  foreground text, borders, and progress bars only.
+- Improved Chinese wide-character measurement and compact spacing.
 
 ## [0.1.0] - 2026-09-02
 
