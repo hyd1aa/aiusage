@@ -33,6 +33,9 @@ class AiUsageTests(unittest.TestCase):
     def test_two_providers_preserve_single_column(self):
         self.assertEqual(column_count(2, 80), 1)
 
+    def test_four_providers_are_balanced_two_by_two(self):
+        self.assertEqual(column_count(4, 80), 2)
+
     def test_language_position_and_selector_persist(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "config.toml"

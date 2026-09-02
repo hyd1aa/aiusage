@@ -27,7 +27,10 @@ def _reset(epoch, compact=False):
 def column_count(count, width):
     if count <= 2:
         return 1
-    return max(1, min(3, count, (width + GAP) // (MIN_CELL_WIDTH + GAP)))
+    capacity = max(1, min(3, (width + GAP) // (MIN_CELL_WIDTH + GAP)))
+    if count == 4 and capacity >= 2:
+        return 2
+    return min(count, capacity)
 
 
 def _fit(value, width):
