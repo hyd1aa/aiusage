@@ -69,6 +69,17 @@ class TerminalCleanupTests(unittest.TestCase):
         status, _ = self.run_pty(signal.SIGTERM)
         self.assertEqual(status, 0)
 
+    def test_terminal_input_flags_are_restored(self):
+        code = (
+            "import termios; from aiusage.cli import main; "
+            "before=termios.tcgetattr(0); rc=main(['--demo']); "
+            "after=termios.tcgetattr(0); "
+            "print('TERMIOS_RESTORED', before == after); raise SystemExit(rc)"
+        )
+        status, output = self.run_pty(b"q", code)
+        self.assertEqual(status, 0)
+        self.assertIn(b"TERMIOS_RESTORED True", output)
+
     def test_renderer_exception_cleanup(self):
         code = (
             "from unittest.mock import patch; "
