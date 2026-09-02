@@ -1,7 +1,24 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 dist/
 build/
 *.egg-info/
+.venv/
+venv/
+.env
+.env.*
+*.log
 
+# Common local credential exports. Deliberately narrow: source files whose
+# names merely contain words such as "token" remain trackable.
+auth.json
+auth.local.*
+credentials.json
+credentials.local.*
+token.json
+token.local.*

@@ -9,7 +9,7 @@ import threading
 import time
 import tty
 
-from . import config
+from . import __version__, config
 from .models import Availability, ProviderUsage
 from .providers import REGISTRY, demo_usage
 from .render import dashboard, selector
@@ -136,10 +136,14 @@ def paint(lines, previous):
 
 
 def _args(argv=None):
-    parser = argparse.ArgumentParser(prog="aiusage")
-    parser.add_argument("--demo", action="store_true", help="use isolated local demo data")
-    parser.add_argument("--snapshot", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--size", default="", help=argparse.SUPPRESS)
+    parser = argparse.ArgumentParser(
+        prog="aiusage",
+        description="Responsive terminal dashboard for verified AI CLI usage limits.",
+    )
+    parser.add_argument("--demo", action="store_true", help="use deterministic, isolated demo data")
+    parser.add_argument("--snapshot", action="store_true", help="print one non-interactive dashboard snapshot")
+    parser.add_argument("--size", metavar="WIDTHxHEIGHT", default="", help="snapshot dimensions (default: 80x24)")
+    parser.add_argument("--version", action="version", version=f"AIUsage {__version__}")
     return parser.parse_args(argv)
 
 
@@ -148,7 +152,12 @@ def main(argv=None):
     board = Dashboard(args.demo)
     if args.snapshot:
         board.refresh()
-        width, height = (map(int, args.size.lower().split("x"))) if args.size else (80, 24)
+        try:
+            width, height = (map(int, args.size.lower().split("x"))) if args.size else (80, 24)
+        except (ValueError, TypeError):
+            raise SystemExit("aiusage: --size must be WIDTHxHEIGHT")
+        if width < 1 or height < 1:
+            raise SystemExit("aiusage: --size dimensions must be positive")
         print("\n".join(board.frame(width, height)))
         return 0
     if not sys.stdin.isatty() or not sys.stdout.isatty():
@@ -193,4 +202,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

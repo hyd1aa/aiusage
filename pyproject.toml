@@ -1,13 +1,35 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "aiusage"
-version = "0.2.0"
-description = "A small terminal dashboard for verified AI usage limits"
+dynamic = ["version"]
+description = "A lightweight, responsive terminal dashboard for AI CLI usage and rate limits"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
+authors = [{name = "AIUsage contributors"}]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+dev = []
 
 [project.scripts]
 aiusage = "aiusage.cli:main"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
+[tool.setuptools.dynamic]
+version = {attr = "aiusage.__version__"}
 
+[tool.setuptools.packages.find]
+where = ["src"]

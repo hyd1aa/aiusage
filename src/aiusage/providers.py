@@ -137,7 +137,17 @@ class ProviderAdapter:
         if self.reader is None:
             return ProviderUsage(self.key, self.name, Availability.NOT_SUPPORTED)
         try:
-            return ProviderUsage(self.key, self.name, Availability.AVAILABLE, self.reader())
+            windows = self.reader()
+            if not isinstance(windows, (tuple, list)) or not windows:
+                raise ValueError("Malformed rate-limit response")
+            if any(
+                not isinstance(window, RateLimitWindow)
+                or not isinstance(window.label, str)
+                or not isinstance(window.remaining_percent, (int, float))
+                for window in windows
+            ):
+                raise ValueError("Malformed rate-limit window")
+            return ProviderUsage(self.key, self.name, Availability.AVAILABLE, tuple(windows))
         except Exception as exc:
             return ProviderUsage(self.key, self.name, Availability.UNAVAILABLE, error=str(exc))
 
@@ -174,4 +184,3 @@ def demo_usage(key: str) -> ProviderUsage:
     adapter = REGISTRY[key]
     windows = tuple(RateLimitWindow(label, remaining, now + hours*3600) for label, remaining, hours in values[key])
     return ProviderUsage(key, adapter.name, Availability.AVAILABLE, windows)
-

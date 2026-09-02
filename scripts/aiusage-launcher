@@ -1,0 +1,5 @@
+#!/bin/sh
+AIUSAGE_LIB='@LIBDIR@'
+export PYTHONPATH="$AIUSAGE_LIB${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m aiusage.cli "$@"
+

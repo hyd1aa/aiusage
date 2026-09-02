@@ -32,7 +32,7 @@ def load(path: Path | None = None) -> Config:
     target = path or config_path()
     try:
         lines = target.read_text(encoding="utf-8").splitlines()
-    except FileNotFoundError:
+    except (OSError, UnicodeError):
         return cfg
     values = {}
     for raw in lines:
@@ -58,9 +58,8 @@ def _valid(items):
     return list(dict.fromkeys(item for item in items if item in REGISTRY))
 
 
-def save(cfg: Config, path: Path | None = None):
+def save(cfg: Config, path: Path | None = None) -> bool:
     target = path or config_path()
-    target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     def quoted(items):
         return ", ".join(f'"{item}"' for item in items)
     body = (
@@ -70,7 +69,15 @@ def save(cfg: Config, path: Path | None = None):
         f'demo_providers = [{quoted(_valid(cfg.demo_providers))}]\n'
     )
     temporary = target.with_suffix(".tmp")
-    temporary.write_text(body, encoding="utf-8")
-    os.chmod(temporary, 0o600)
-    os.replace(temporary, target)
-
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        temporary.write_text(body, encoding="utf-8")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, target)
+        return True
+    except OSError:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return False
