@@ -1,191 +1,196 @@
 # AIUsage
 
-A lightweight, responsive terminal dashboard for AI CLI usage and rate limits.
+**简体中文** | [English](README_EN.md)
 
-AIUsage shows verified local rate-limit information from supported CLI clients
-without running a daemon or sending telemetry. Its deterministic demo mode is
-safe for layout development, documentation, and screenshots.
+一个轻量、响应式的 AI CLI 额度终端看板。
 
-## Demo
+在 SSH、VPS 和 Linux 终端中统一查看 Codex、Grok 等 AI CLI 的剩余额度、使用窗口和重置时间。
+
+[介绍](#介绍) · [效果图](#效果图) · [一键安装](#一键安装) · [使用方法](#使用方法) · [支持情况](#支持情况) · [快捷键](#快捷键) · [配置](#配置) · [开源许可](#开源许可)
+
+## 介绍
+
+AIUsage 直接运行在终端中，不需要 Web 面板，也不需要后台 daemon。输入 `aiusage`，就能打开一个会自动适应 SSH、tmux 和 VPS pane 尺寸的额度看板。
+
+- Codex、Grok 真实额度读取
+- 中文 / English 实时切换
+- Provider 自由选择和排序
+- 1 / 2 / 3 列响应式布局
+- 实时系统时间，额度每 30 秒刷新
+- Unicode 进度条、低闪烁局部重绘
+- 无 telemetry，不上传额度或配置
+
+## 效果图
+
+### 真实模式
+
+直接运行 `aiusage`。只展示具有可靠本地数据源的真实额度；下面是布局示意，百分比和重置时间以你本机 CLI 返回的数据为准。
 
 ```text
-AI USAGE [DEMO]  System 12:34:56
+AI USAGE  系统时间 12:34:56
+              ┌──────────────────────────────────────────┐
+              │ CODEX                                    │
+              │ 5h     ████████░░  83%                   │
+              │ 重置: 14:46                              │
+              └──────────────────────────────────────────┘
+
+              ┌──────────────────────────────────────────┐
+              │ GROK                                     │
+              │ Weekly ███████░░░  72%                   │
+              │ 重置: Sep 05                             │
+              └──────────────────────────────────────────┘
+```
+
+### Demo 模式
+
+`aiusage --demo` 使用固定演示数据，适合预览 6 个 Provider 的 3×2 布局。界面会明确显示 **`[演示]`**，其中 Claude、Gemini、DeepSeek、Kimi 等数值不是实际额度。
+
+```text
+AI USAGE [演示]  系统时间 12:34:56
 ┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
 │ CODEX                  │ │ GROK                   │ │ DEEPSEEK               │
 │ 5h     ████████░░  83% │ │ Cycle  ███████░░░  72% │ │ Daily  ███████░░░  66% │
-│ Reset: 14:46           │ │ Reset: Sep05           │ │ Reset: 23:34           │
 └────────────────────────┘ └────────────────────────┘ └────────────────────────┘
 
 ┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
 │ CLAUDE                 │ │ GEMINI                 │ │ KIMI                   │
 │ 5h     █████░░░░░  48% │ │ Daily  █████████░  91% │ │ Monthl ████░░░░░░  37% │
-│ Reset: 16:04           │ │ Reset: 20:34           │ │ Reset: Sep12           │
 └────────────────────────┘ └────────────────────────┘ └────────────────────────┘
 ```
 
-This shortened example is explicitly demo data. A complete 80×24 text capture
-is kept at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt).
-Future PNG captures should be placed in `docs/screenshots/` and must be made
-from `aiusage --demo`, without shell prompts, hostnames, or other panes.
+完整的 80×24 纯文本效果见 [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt)。后续 PNG 可放在 `docs/screenshots/aiusage-demo.png`；截图必须来自 Demo 模式，且不能包含主机名、IP、shell 提示符或其他 pane。
 
-## Features
+## 一键安装
 
-- Verified real-mode readers for Codex and Grok.
-- Strictly isolated, deterministic demo mode with a prominent `[DEMO]` label.
-- Responsive one-, two-, and three-column layouts, optimized for 80×24.
-- English and Chinese UI, live resize handling, and Unicode progress bars.
-- Provider selection and ordering plus seven whole-dashboard positions.
-- Thirty-second usage refresh, one-second clock updates, stale-data handling,
-  low-flicker partial redraws, and careful terminal cleanup.
-- Standard-library-only runtime; no background service and no telemetry.
+### Linux
 
-## Supported providers
-
-| Provider | Real usage | Demo/UI | Status |
-| --- | --- | --- | --- |
-| Codex | Yes | Yes | Supported |
-| Grok | Yes | Yes | Supported |
-| Claude | No | Yes | UI ready |
-| Gemini | No | Yes | UI ready |
-| DeepSeek | No | Yes | UI ready |
-| Kimi | No | Yes | UI ready |
-| GLM | No | Yes | UI ready |
-| z.ai | No | Yes | UI ready |
-
-An enabled provider without a verified reader is shown as `Not installed`,
-`Unavailable`, or `Not supported`; AIUsage never substitutes mock percentages
-in real mode.
-
-## Requirements
-
-- Linux (tested).
-- Python 3.10 or newer.
-- An ANSI-capable terminal; UTF-8 is recommended.
-- Codex CLI installed and already signed in for Codex real usage.
-- Grok CLI installed and an existing structured billing snapshot for Grok real
-  usage.
-
-macOS has not been tested and may work. Windows is not currently supported.
-
-## Installation
-
-```sh
+```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
 sudo ./install.sh
 aiusage
 ```
 
-The installer is idempotent, adds `/usr/local/bin/aiusage`, and installs only
-AIUsage runtime files under `/usr/local/lib/aiusage`. It does not change user
-configuration. To remove the program while retaining settings:
+安装脚本可重复执行，只会安装 AIUsage 到 `/usr/local/bin/aiusage` 和 `/usr/local/lib/aiusage`，不会修改已有用户配置。
 
-```sh
+卸载程序：
+
+```bash
 sudo ./uninstall.sh
 ```
 
-To also remove settings, explicitly remove `~/.config/aiusage/` afterward.
+卸载默认保留 `~/.config/aiusage/`。如需连同偏好一起删除，请自行明确删除该目录。
 
-## Usage
+## 使用方法
 
-Real mode uses only verified provider readers:
+真实模式：
 
-```sh
+```bash
 aiusage
 ```
 
-Demo mode uses deterministic local fixtures and never invokes a real adapter:
+Demo 模式：
 
-```sh
+```bash
 aiusage --demo
 ```
 
-Other useful commands:
+其他命令：
 
-```sh
+```bash
 aiusage --help
 aiusage --version
 aiusage --demo --snapshot --size 80x24
 ```
 
-## Keyboard shortcuts
+首次使用且没有配置文件时，界面默认为中文。按 `L` 可以随时切换到 English，选择会自动保存；已经保存 `language = "en"` 的用户不会被升级覆盖。
 
-| Key | Action |
+## 支持情况
+
+| Provider | 真实额度 | Demo / UI | 状态 |
+| --- | --- | --- | --- |
+| Codex | 是 | 是 | 已支持 |
+| Grok | 是 | 是 | 已支持 |
+| Claude | 否 | 是 | UI 已就绪 |
+| Gemini | 否 | 是 | UI 已就绪 |
+| DeepSeek | 否 | 是 | UI 已就绪 |
+| Kimi | 否 | 是 | UI 已就绪 |
+| GLM | 否 | 是 | UI 已就绪 |
+| z.ai | 否 | 是 | UI 已就绪 |
+
+真实模式绝不会用 Demo 数据冒充额度。启用但没有可靠 reader 的 Provider，会如实显示“未安装”“不可用”或“不支持”。
+
+## 快捷键
+
+| 按键 | 功能 |
 | --- | --- |
-| `L` | Switch language between English and Chinese |
-| `P` | Cycle dashboard position |
-| `S` | Open provider selection and ordering |
-| `R` | Refresh usage |
-| `Q` | Exit |
-| `Esc`, `Ctrl+C` | Exit |
+| `L` | 中文 / English 切换 |
+| `P` | 切换整个看板的位置 |
+| `S` | 选择、启用和排序 Provider |
+| `R` | 立即刷新额度 |
+| `Q` | 退出 |
+| `Esc` / `Ctrl+C` | 退出 |
 
-Inside provider management, use the arrow keys (or `J`/`K`) to select,
-`Space` to enable or disable, `U`/`D` to reorder, `Enter` to save, and `Esc`
-to cancel.
+Provider 管理中可使用方向键或 `J` / `K` 选择，`Space` 启用或禁用，`U` / `D` 排序，`Enter` 保存，`Esc` 取消。
 
-## Display and configuration
+## 响应式布局
 
-AIUsage calculates column count from terminal size and minimum card width. Six
-providers use a 3×2 grid at 80×24, four use 2×2, and one or two retain a single
-boxed column. `P` moves the complete dashboard among top-left, top-center,
-top-right, center, bottom-left, bottom-center, and bottom-right.
+AIUsage 会根据终端尺寸和卡片最小宽度自动选择布局：
 
-Settings are written atomically with user-only file permissions to:
+- 6 个 Provider：80×24 下优先 3×2
+- 4 个 Provider：2×2
+- 3 个 Provider：根据宽度选择 3×1 或换行
+- 1～2 个 Provider：单列 boxed 布局
+
+按 `P` 可让整张看板在左上、顶部居中、右上、正中、左下、底部居中、右下之间循环移动。
+
+## 配置
+
+配置保存在：
 
 ```text
 ~/.config/aiusage/config.toml
 ```
 
-Only UI preferences are stored: language, position, enabled providers, and
-provider order. No token, cookie, credential, or usage snapshot is written.
-See [`config.example.toml`](config.example.toml). Missing, unreadable, or
-damaged configuration falls back to safe defaults rather than preventing the
-dashboard from starting.
+只保存语言、看板位置、启用的 Provider 和排序，不保存 token、cookie、credential 或额度快照。文件使用仅当前用户可读写的权限并原子写入；配置缺失、损坏或不可读时会安全回退，不影响启动。
 
-Set `NO_COLOR` to request color-free output. Borders and progress bars remain
-Unicode because they are structural rather than color; terminal control
-sequences are still used for interactive screen management and cleanup.
+示例见 [`config.example.toml`](config.example.toml)。设置 `NO_COLOR` 后不使用彩色样式；Unicode 边框和进度条仍作为界面结构保留。
 
-## Data and privacy
+## 数据与隐私
 
-AIUsage reads provider state locally. It does not upload usage data, tokens,
-or configuration; it does not start a background daemon; and it has no
-telemetry. Demo mode does not inspect installed clients, authentication files,
-or network APIs.
+- 不上传 usage 数据、token 或配置
+- 不提供账号，不代替用户登录
+- 不读取或分享保存的凭据
+- 不启动后台 daemon
+- 无 telemetry
+- Demo 模式不调用真实 adapter，不访问认证信息或远端 usage API
 
-AIUsage does not provide accounts, bypass login, share tokens, imitate a
-client identity, or perform authentication. Users are responsible for using
-provider clients and accounts in accordance with their applicable terms.
+## 兼容性与说明
 
-## Provider compatibility and disclaimer
+AIUsage 是非官方社区工具。真实额度读取依赖用户已经安装并通过正规方式登录的 CLI，以及客户端当前公开或产生的本地结构化状态。
 
-AIUsage is an unofficial community utility. Rate-limit retrieval may depend on
-interfaces exposed by installed CLI clients and may require updates when
-upstream clients change. Codex currently uses the CLI's local app-server
-rate-limit method. Grok reads a bounded tail of its locally generated,
-structured billing log. Both require the corresponding CLI and a session the
-user has already established legitimately.
+Codex reader 使用 CLI 的本地 app-server rate-limit 方法；Grok reader 读取本地结构化 billing log 的有限尾部。上游 CLI 的内部接口可能变化，未来可能需要同步更新。AIUsage 不提供账号、不绕过登录、不共享 token，也不伪造客户端身份。
 
-No guarantee is made that upstream local interfaces remain stable. Unsupported
-providers remain UI/registry-ready until a reliable and verifiable source is
-implemented.
+运行要求：
 
-## Troubleshooting
+- Linux（已测试）
+- Python 3.10 或更高版本
+- 支持 ANSI 的终端，推荐 UTF-8
+- 查看真实 Codex / Grok 额度时，需要对应 CLI 已安装并由用户自行登录
 
-- `Not installed`: install the provider's official CLI and sign in through its
-  normal workflow; AIUsage does not perform login.
-- `Unavailable`: refresh with `R`, then verify the installed client itself is
-  healthy and has produced rate-limit information.
-- `Not supported`: the provider is selectable for UI readiness, but no verified
-  real reader exists yet.
-- Garbled borders: use a UTF-8 locale and a terminal font with box-drawing
-  characters.
-- A bad configuration does not block startup; remove or repair only
-  `~/.config/aiusage/config.toml` if you want to restore defaults.
+macOS 尚未验证，可能可以运行；Windows 当前不支持。
 
-## Development
+## 常见问题
 
-```sh
+- **未安装**：请通过 Provider 的正常方式安装官方 CLI；AIUsage 不负责登录。
+- **不可用**：按 `R` 刷新，并确认对应 CLI 正常且已产生额度状态。
+- **不支持**：Provider 可用于 UI / Demo，但还没有经过验证的真实 reader。
+- **边框乱码**：检查 UTF-8 locale 和终端字体的 box-drawing 字符支持。
+- **配置损坏**：修复或删除 `~/.config/aiusage/config.toml` 即可恢复默认值。
+
+## 开发
+
+```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e '.[dev]'
@@ -194,11 +199,8 @@ python -m unittest discover -s tests -v
 python tools/check_sensitive.py
 ```
 
-Tests are offline: real provider processes and credentials are mocked or
-avoided. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the adapter contract and
-contribution rules.
+测试完全离线，不需要登录 Codex 或 Grok。新增真实 Provider adapter 必须有可靠、可验证的数据源，禁止伪造真实 usage 或提交凭据。参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
-## License
+## 开源许可
 
-MIT. See [`LICENSE`](LICENSE). Copyright is held neutrally by AIUsage
-contributors; no individual identity is implied.
+本项目采用 [MIT License](LICENSE)。Copyright 使用中性的 “AIUsage contributors”，不代表任何个人身份。

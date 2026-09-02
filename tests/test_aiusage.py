@@ -29,7 +29,7 @@ class AiUsageTests(unittest.TestCase):
         self.assertEqual(sum(line.count("┌") for line in lines), 6)
         self.assertLessEqual(len(lines), 24)
         self.assertLessEqual(max(map(len, lines)), 80)
-        self.assertIn("[DEMO]", "\n".join(lines))
+        self.assertIn("[演示]", "\n".join(lines))
 
     def test_two_providers_preserve_single_column(self):
         self.assertEqual(column_count(2, 80), 1)
@@ -41,7 +41,7 @@ class AiUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "config.toml"
             with mock.patch.object(config, "config_path", return_value=target):
-                board = Dashboard(True, config.Config())
+                board = Dashboard(True, config.Config(language="en"))
                 board.key(b"L")
                 board.key(b"P")
                 board.key(b"S")

@@ -46,6 +46,16 @@ class ProviderEdgeCaseTests(unittest.TestCase):
 
 
 class ConfigEdgeCaseTests(unittest.TestCase):
+    def test_new_user_defaults_to_chinese(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertEqual(config.load(Path(directory) / "missing.toml").language, "zh")
+
+    def test_explicit_english_preference_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            target.write_text('language = "en"\n')
+            self.assertEqual(config.load(target).language, "en")
+
     def test_broken_config_falls_back(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "config.toml"
@@ -57,7 +67,7 @@ class ConfigEdgeCaseTests(unittest.TestCase):
             target = Path(directory) / "config.toml"
             target.write_text('language = "xx"\nposition = "outer-space"\nreal_providers = ["bogus"]\n')
             loaded = config.load(target)
-            self.assertEqual(loaded.language, "en")
+            self.assertEqual(loaded.language, "zh")
             self.assertEqual(loaded.position, "center")
             self.assertEqual(loaded.real_providers, ["codex", "grok"])
 
@@ -109,7 +119,7 @@ class KeyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "config.toml"
             with mock.patch.object(config, "config_path", return_value=target):
-                board = Dashboard(True, config.Config())
+                board = Dashboard(True, config.Config(language="en"))
                 board.key(b"L")
                 board.key(b"P")
                 board.key(b"S")

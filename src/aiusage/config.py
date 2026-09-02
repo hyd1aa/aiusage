@@ -10,7 +10,7 @@ DEMO_DEFAULT = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
 
 @dataclass
 class Config:
-    language: str = "en"
+    language: str = "zh"
     position: str = "center"
     real_providers: list[str] = field(default_factory=lambda: ["codex", "grok"])
     demo_providers: list[str] = field(default_factory=lambda: list(DEMO_DEFAULT))
@@ -40,13 +40,13 @@ def load(path: Path | None = None) -> Config:
         if "=" in line:
             key, value = line.split("=", 1)
             values[key.strip()] = value.strip()
-    cfg.language = values.get("language", '"en"').strip('"')
+    cfg.language = values.get("language", '"zh"').strip('"')
     cfg.position = values.get("position", '"center"').strip('"')
     for attr in ("real_providers", "demo_providers"):
         if attr in values:
             setattr(cfg, attr, _array(values[attr]))
     if cfg.language not in ("en", "zh"):
-        cfg.language = "en"
+        cfg.language = "zh"
     if cfg.position not in POSITIONS:
         cfg.position = "center"
     cfg.real_providers = _valid(cfg.real_providers) or ["codex", "grok"]
