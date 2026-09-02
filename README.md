@@ -69,10 +69,8 @@ macOS has not been tested and may work. Windows is not currently supported.
 
 ## Installation
 
-Replace the placeholder owner before the repository is published:
-
 ```sh
-git clone https://github.com/<owner>/aiusage.git
+git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
 sudo ./install.sh
 aiusage
@@ -204,4 +202,3 @@ contribution rules.
 
 MIT. See [`LICENSE`](LICENSE). Copyright is held neutrally by AIUsage
 contributors; no individual identity is implied.
-
