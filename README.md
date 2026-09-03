@@ -1,5 +1,10 @@
 # AIUsage
 
+[![Latest Release](https://img.shields.io/github/v/release/hyd1aa/aiusage?label=release)](https://github.com/hyd1aa/aiusage/releases/latest)
+[![CI](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml/badge.svg)](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml)
+![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10%E2%80%933.13-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **简体中文** | [English](README_EN.md)
 
 一个轻量、响应式的 AI CLI 额度终端看板。
@@ -10,7 +15,7 @@
 
 ## 介绍
 
-AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。输入 `aiusage`，即可打开自动适应 SSH、tmux 和 VPS pane 的额度看板。
+AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。新用户输入 `ai` 即可进入统一管理菜单；熟悉用户输入 `aiusage` 可直接打开自动适应 SSH、tmux 和 VPS pane 的额度看板。
 
 - Codex、Grok 真实额度读取
 - 新用户默认中文，可实时切换 English
@@ -24,12 +29,12 @@ AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。输入
 ## 效果预览
 
 ### 真实模式
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/zhenshi.jpg?raw=true)</br>
+![AIUsage 真实模式](AIUsage/zhenshi.jpg)
 `aiusage` 只展示具有可靠本地数据源的真实额度。下面是中文界面示意，百分比和时间以你本机 CLI 返回的数据为准：
 看板只有一个总框，Provider 不会各自套框。框高由内容决定，再把整个内容块放到所选位置，不会强制填满 terminal。
 
 ### Demo 模式
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/demo.jpg?raw=true)</br>
+![AIUsage Demo 演示模式](AIUsage/demo.jpg)
 `aiusage --demo` 使用固定演示数据，可用于 UI 预览、README 截图、布局测试和中英文测试。界面会明确显示 **`[演示]`**。
 默认 Demo 展示 Codex、Grok、MiniMax、Qoder、CodeBuddy 和 TraeCode。除 Codex、Grok 外，其余项目当前仅用于 UI 演示，百分比不能视为真实账号额度。
 
@@ -43,27 +48,27 @@ sudo ./install.sh
 ai
 ```
 
-安装脚本可以重复执行，安装 `ai`、`aiusage` 和 AIUsage package，不会覆盖已有用户配置。
+安装器始终安装 `aiusage` 和 AIUsage package。如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。
 
 ## 安装完成后
 
-普通用户只需记住：
+新用户推荐输入：
 
 ```bash
 ai
 ```
 
-如果系统中已有其他程序使用 `ai`，安装器不会覆盖它。此时使用稳定入口：
+进入统一管理菜单。如果系统中已有第三方程序使用 `ai`，安装器不会覆盖它，此时使用稳定入口：
 
 ```bash
 aiusage --menu
 ```
 
-它会打开统一管理菜单，可完成启动、Demo、设置、检查更新、环境检查和安全卸载：
+它会进入同一个管理菜单，可完成启动、Demo、设置、检查更新、环境检查和安全卸载：
 
 
 
-熟悉用户可继续直接运行：
+熟悉用户可以直接运行：
 
 ```bash
 aiusage
@@ -74,7 +79,7 @@ aiusage
 版本检查使用短超时与本地缓存，不会阻塞离线使用。更新只接受 `https://github.com/hyd1aa/aiusage` 的正式 Release，明确确认后才下载、校验版本并安装；需要写入 `/usr/local` 时才调用 `sudo`。用户配置不会被更新删除。
 
 ## 快速使用
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/jiaoben.jpg?raw=true)</br>
+![AIUsage 管理菜单](AIUsage/jiaoben.jpg)
 管理菜单：
 
 ```bash
@@ -113,18 +118,19 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | ✅ | VERIFIED |
 | Grok | ✅ | ✅ | ✅ | VERIFIED |
-| MiniMax (`mmx`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；官方 quota JSON 待登录环境实测 |
-| Qoder (`qoder`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；官方 SDK quota 待实测 |
-| Qoder CN (`qodercn`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；独立账号与 SDK |
-| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY；暂无安全 quota reader |
-| TraeCode (`traecli`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY；企业权限，暂无 quota reader |
-| ZCode | ❌ | ❌ | ❌ | NOT_ELIGIBLE；目前是 Linux 桌面应用 |
+| MiniMax (`mmx`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
+| Qoder (`qoder`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
+| Qoder CN (`qodercn`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
+| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | 暂无可靠额度接口 |
+| TraeCode (`traecli`) | ✅ | ✅ | ❌ | 暂无可靠额度接口 |
 
-真实模式绝不会使用 Demo 数据冒充额度。启用但没有可靠 reader 的 Provider，会如实显示“未安装”“不可用”或“不支持”。
+“可自动识别”只表示 AIUsage 可以检测到 CLI，不代表已经能够读取真实额度。只有经过真实环境验证的 Provider 才会标记为真实额度已支持；`⏳` 明确表示仍在等待验证。真实模式绝不会使用 Demo 数据冒充额度，启用但没有可靠 reader 的 Provider 会如实显示“未安装”“不可用”或“不支持”。
+
+**ZCode：**目前未确认存在适合纯 SSH / VPS 环境的官方终端 CLI，因此暂不纳入 AIUsage 的正式 VPS Provider 支持范围；未来若出现可靠的 headless CLI，可以重新评估。
 
 ## 主题切换
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/Green.jpg?raw=true)</br>
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/White.jpg?raw=true)</br>
+![AIUsage 绿色主题](AIUsage/Green.jpg)
+![AIUsage 白色主题](AIUsage/White.jpg)
 新用户默认使用 **White** 主题。运行中按 `T` 可切换：
 
 ```text
@@ -141,8 +147,8 @@ White ↔ Green
 AIUsage 永远使用用户自己的 terminal background，不设置白色、绿色、灰色或 RGB 背景，也不会用带背景色的空格填充看板。
 
 ## 中英文切换
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/cn.jpg?raw=true)</br>
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/us.jpg?raw=true)</br>
+![AIUsage 中文界面](AIUsage/cn.jpg)
+![AIUsage English 界面](AIUsage/us.jpg)
 新用户在没有配置文件时默认使用中文。按 `L` 可实时切换中文与 English，并自动保存。
 已经保存 `language = "en"` 的用户升级后仍保持 English，不会被强制切回中文。Provider 品牌名称始终保持原名。
 
@@ -174,7 +180,7 @@ Provider 管理中可使用方向键或 `J` / `K` 选择，`Space` 启用或禁�
 所有布局都只有一个总框。标题相对实际框宽居中，Provider grid 作为紧凑内容块整体居中；框尺寸由内容自然计算，不会强制占满 terminal。80×24 已验证，更小尺寸会自动响应。
 
 ## Provider 管理
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/s.jpg?raw=true)</br>
+![AIUsage Provider 管理](AIUsage/s.jpg)
 按 `S` 打开 Provider 管理，可启用、禁用和调整顺序。Real mode 默认启用 Codex、Grok；Demo mode 默认展示 6 个 Provider。选择分别保存，不会把 Demo 配置混入真实 reader。
 
 
@@ -189,8 +195,8 @@ Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、�
 `ai` / `aiusage --menu` 的 Settings 可开关自动发现。Demo mode 完全离线，不执行真实 discovery。MiniMax、Qoder、Qoder CN、CodeBuddy 和 TraeCode 当前只探测 executable；在真实 reader 完成生产验证前，即使已安装也只显示“额度不支持”，不会自动产生额度。
 
 ## 看板位置
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/zuoxia.jpg?raw=true)</br>
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/youshang.jpg?raw=true)</br>
+![AIUsage 左下位置](AIUsage/zuoxia.jpg)
+![AIUsage 右上位置](AIUsage/youshang.jpg)
 按 `P` 在以下位置循环切换，并保存选择：
 
 ```text
@@ -202,7 +208,7 @@ Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、�
 
 ## 时间与时区
 
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/utc.jpg?raw=true)</br>
+![AIUsage 时区设置](AIUsage/utc.jpg)
 默认配置 `timezone = "system"`。AIUsage 每次启动和显示时都会使用操作系统当前时区，不会把旧的 system timezone 缓存在配置里；VPS 改变时区后，重新启动即可自动跟随。
 
 按 `Z` 可以选择“跟随系统”、常用 UTC offset，或以 15 分钟步进调整自定义 offset。支持 `UTC-12` 至 `UTC+14`，包括 `UTC+05:30`、`UTC+05:45` 和 `UTC+09:30`。设置会同时作用于系统时间和所有 Reset 时间。
@@ -276,7 +282,7 @@ macOS 尚未验证，可能可以运行；Windows 当前不支持。设置 `NO_C
 
 ## 卸载
 
-![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/xiezai.jpg?raw=true)</br>
+![AIUsage 卸载菜单](AIUsage/xiezai.jpg)
 推荐从 `ai` 选择“卸载 AIUsage”，可明确选择保留或删除用户配置，并需要二次确认。
 
 ```bash

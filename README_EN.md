@@ -1,5 +1,10 @@
 # AIUsage
 
+[![Latest Release](https://img.shields.io/github/v/release/hyd1aa/aiusage?label=release)](https://github.com/hyd1aa/aiusage/releases/latest)
+[![CI](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml/badge.svg)](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml)
+![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10%E2%80%933.13-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 [简体中文](README.md) | **English**
 
 A lightweight, responsive terminal dashboard for AI CLI usage and rate limits.
@@ -10,7 +15,7 @@ View remaining percentages, usage windows, and reset times from clients such as 
 
 ## Introduction
 
-AIUsage runs directly in the terminal without a web panel or background daemon. Launch `aiusage` to get a dashboard that adapts to SSH sessions, tmux windows, and VPS panes.
+AIUsage runs directly in the terminal without a web panel or background daemon. New users can run `ai` for the unified management menu; experienced users can run `aiusage` to open the responsive SSH, tmux, and VPS dashboard directly.
 
 - Verified real usage readers for Codex and Grok
 - Chinese by default for new users, with live English switching
@@ -24,6 +29,8 @@ AIUsage runs directly in the terminal without a web panel or background daemon. 
 ## Preview
 
 ### Real mode
+
+![AIUsage real mode](AIUsage/zhenshi.jpg)
 
 `aiusage` displays real usage only when a reliable local source exists. This is an English UI example; percentages and times come from your own installed clients:
 
@@ -52,6 +59,8 @@ There is one outer box; providers do not get individual boxes. The box takes its
 
 ### Demo mode
 
+![AIUsage demo mode](AIUsage/demo.jpg)
+
 `aiusage --demo` uses deterministic fixtures for UI previews, README captures, responsive layout tests, and i18n checks. The dashboard is prominently marked **`[DEMO]`**.
 
 The default demo shows Codex, Grok, MiniMax, Qoder, CodeBuddy, and TraeCode. Except for Codex and Grok, these are UI fixtures only; their percentages are not account data. See the full 80×24 text capture at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt).
@@ -65,23 +74,23 @@ sudo ./install.sh
 ai
 ```
 
-The idempotent installer deploys `ai`, `aiusage`, and the AIUsage package. Existing user configuration is preserved.
+The idempotent installer always installs `aiusage` and the AIUsage package. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
 
 ## After installation
 
-For a beginner-friendly entry point, run:
+The recommended entry point for new users is:
 
 ```bash
 ai
 ```
 
-If another program already owns `ai`, the installer leaves it untouched. Use the guaranteed management entry instead:
+This opens the unified management menu. If another program already owns `ai`, the installer leaves it untouched; use the guaranteed management entry instead:
 
 ```bash
 aiusage --menu
 ```
 
-The unified management menu provides launch, demo, settings, update checks, diagnostics, and confirmed uninstall:
+It opens the same management menu, with dashboard launch, demo, settings, update checks, diagnostics, and confirmed uninstall:
 
 ```text
 +--------------------------------------+
@@ -112,6 +121,8 @@ aiusage
 Latest-version checks use a short timeout and local cache, so offline use remains responsive. Updates accept stable releases only from `https://github.com/hyd1aa/aiusage`, require explicit confirmation, verify the installed version, and invoke `sudo` only when `/usr/local` needs it. Updates preserve user configuration.
 
 ## Quick start
+
+![AIUsage management menu](AIUsage/jiaoben.jpg)
 
 Management menu:
 
@@ -151,16 +162,20 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | ✅ | VERIFIED |
 | Grok | ✅ | ✅ | ✅ | VERIFIED |
-| MiniMax (`mmx`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; official quota JSON awaits signed-in validation |
-| Qoder (`qoder`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; official SDK quota awaits validation |
-| Qoder CN (`qodercn`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; separate account and SDK |
-| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY; no safe quota reader |
-| TraeCode (`traecli`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY; enterprise entitlement, no quota reader |
-| ZCode | ❌ | ❌ | ❌ | NOT_ELIGIBLE; currently a Linux desktop app |
+| MiniMax (`mmx`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
+| Qoder (`qoder`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
+| Qoder CN (`qodercn`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
+| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
+| TraeCode (`traecli`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
 
-Real mode never substitutes demo values. An enabled provider without a verified reader is reported honestly as `Not installed`, `Unavailable`, or `Not supported`.
+“Auto-detectable” means AIUsage can detect the CLI; it does not mean real quota reading is supported. Only Providers validated in a real environment receive the supported-real-usage mark. The `⏳` symbol explicitly means validation is pending. Real mode never substitutes demo values, and an enabled Provider without a verified reader is reported honestly as `Not installed`, `Unavailable`, or `Not supported`.
+
+**ZCode:** ZCode is currently excluded from the primary VPS Provider list because an official headless terminal CLI has not been verified. It can be reconsidered if a suitable CLI becomes available later.
 
 ## Themes
+
+![AIUsage Green theme](AIUsage/Green.jpg)
+![AIUsage White theme](AIUsage/White.jpg)
 
 New users start with the **White** theme. Press `T` while AIUsage is running to switch:
 
@@ -177,6 +192,9 @@ Themes affect foreground elements only:
 AIUsage always preserves the user's native terminal background. It never sets white, green, gray, or RGB backgrounds and never fills the dashboard with background-colored spaces.
 
 ## Language switching
+
+![AIUsage Chinese interface](AIUsage/cn.jpg)
+![AIUsage English interface](AIUsage/us.jpg)
 
 The default language for new users without a configuration file is Chinese. Press `L` to switch to English and save that preference.
 
@@ -210,6 +228,8 @@ Every layout uses one outer box. The title is centered against the actual box wi
 
 ## Provider management
 
+![AIUsage Provider management](AIUsage/s.jpg)
+
 Press `S` to enable, disable, or reorder providers. Real mode defaults to Codex and Grok; demo mode defaults to six providers. Real and demo selections are saved separately, so demo configuration never becomes real usage.
 
 ## Automatic Provider discovery
@@ -224,6 +244,9 @@ Settings in `ai` / `aiusage --menu` can toggle automatic discovery. Demo mode is
 
 ## Dashboard position
 
+![AIUsage bottom-left position](AIUsage/zuoxia.jpg)
+![AIUsage top-right position](AIUsage/youshang.jpg)
+
 Press `P` to cycle and save:
 
 ```text
@@ -234,6 +257,8 @@ bottom-left / bottom-center / bottom-right
 Positioning moves the complete natural-size box without stretching its internal content.
 
 ## Time and timezones
+
+![AIUsage timezone settings](AIUsage/utc.jpg)
 
 The default is `timezone = "system"`. AIUsage reads the operating system's current timezone whenever it starts and renders; it never caches an old system timezone in configuration. Restarting after the VPS timezone changes automatically follows the new setting.
 
@@ -307,6 +332,8 @@ AIUsage is an unofficial community utility. The Codex reader uses the CLI's loca
 macOS is untested and may work. Windows is not currently supported. Set `NO_COLOR` to disable colored foreground styles while retaining structural Unicode borders and progress bars.
 
 ## Uninstall
+
+![AIUsage uninstall menu](AIUsage/xiezai.jpg)
 
 The recommended path is option 6 in `ai`, where you explicitly choose whether to preserve or remove user configuration and confirm the action a second time.
 
