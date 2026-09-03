@@ -83,7 +83,7 @@ There is one outer box; providers do not get individual boxes. The box takes its
 
 <br>
 
-![AIUsage demo mode](AIUsage/demo.jpg)
+![AIUsage demo mode](AIUsage/cn.jpg)
 
 <br>
 
