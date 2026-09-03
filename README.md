@@ -24,37 +24,15 @@ AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。输入
 ## 效果预览
 
 ### 真实模式
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/zhenshi.jpg?raw=true)</br>
 `aiusage` 只展示具有可靠本地数据源的真实额度。下面是中文界面示意，百分比和时间以你本机 CLI 返回的数据为准：
-
-```text
-┌────────────────── AI USAGE ──────────────────┐
-│                                              │
-│   CODEX                                      │
-│   5h     ███████░░░  37% 剩余                │
-│   重置：9月03日 02:50 UTC+08                 │
-│   Week   ███████░░░  35% 剩余                │
-│   重置：9月07日 10:27 UTC+08                 │
-│                                              │
-│   GROK                                       │
-│   Week   █████████░  53% 剩余                │
-│   重置：9月05日 23:14 UTC+08                 │
-│                                              │
-│ 系统时间：2026-09-02 23:43:32 UTC+08         │
-│ 数据更新：23:43:15                           │
-│                                              │
-│ T主题 L语言 P位置 S服务 Z时区 R刷新 Q退出    │
-│                                              │
-└──────────────────────────────────────────────┘
-```
-
 看板只有一个总框，Provider 不会各自套框。框高由内容决定，再把整个内容块放到所选位置，不会强制填满 terminal。
 
 ### Demo 模式
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/demo.jpg?raw=true)</br>
 `aiusage --demo` 使用固定演示数据，可用于 UI 预览、README 截图、布局测试和中英文测试。界面会明确显示 **`[演示]`**。
+默认 Demo 展示 Codex、Grok、MiniMax、Qoder、CodeBuddy 和 TraeCode。除 Codex、Grok 外，其余项目当前仅用于 UI 演示，百分比不能视为真实账号额度。
 
-默认 Demo 展示 Codex、Grok、MiniMax、Qoder、CodeBuddy 和 TraeCode。除 Codex、Grok 外，其余项目当前仅用于 UI 演示，百分比不能视为真实账号额度。完整 80×24 文本效果见 [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt)。
 
 ## 一键安装
 
@@ -83,23 +61,7 @@ aiusage --menu
 
 它会打开统一管理菜单，可完成启动、Demo、设置、检查更新、环境检查和安全卸载：
 
-```text
-╔══════════════════════════════════════╗
-║               AIUsage                ║
-║          AI CLI 额度终端看板         ║
-╚══════════════════════════════════════╝
-当前版本：v0.1.x
-最新版本：v0.1.x
-GitHub: https://github.com/hyd1aa/aiusage
-----------------------------------------
-1. 启动额度看板
-2. Demo 演示模式
-3. 设置
-4. 检查 / 更新版本
-5. 运行环境检查
-6. 卸载 AIUsage
-0. 退出
-```
+
 
 熟悉用户可继续直接运行：
 
@@ -112,7 +74,7 @@ aiusage
 版本检查使用短超时与本地缓存，不会阻塞离线使用。更新只接受 `https://github.com/hyd1aa/aiusage` 的正式 Release，明确确认后才下载、校验版本并安装；需要写入 `/usr/local` 时才调用 `sudo`。用户配置不会被更新删除。
 
 ## 快速使用
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/jiaoben.jpg?raw=true)</br>
 管理菜单：
 
 ```bash
@@ -161,12 +123,14 @@ aiusage --demo --snapshot --size 80x24
 真实模式绝不会使用 Demo 数据冒充额度。启用但没有可靠 reader 的 Provider，会如实显示“未安装”“不可用”或“不支持”。
 
 ## 主题切换
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/Green.jpg?raw=true)</br>
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/White.jpg?raw=true)</br>
 新用户默认使用 **White** 主题。运行中按 `T` 可切换：
 
 ```text
 White ↔ Green
 ```
+
 
 主题只控制前景元素：
 
@@ -177,10 +141,11 @@ White ↔ Green
 AIUsage 永远使用用户自己的 terminal background，不设置白色、绿色、灰色或 RGB 背景，也不会用带背景色的空格填充看板。
 
 ## 中英文切换
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/cn.jpg?raw=true)</br>
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/us.jpg?raw=true)</br>
 新用户在没有配置文件时默认使用中文。按 `L` 可实时切换中文与 English，并自动保存。
-
 已经保存 `language = "en"` 的用户升级后仍保持 English，不会被强制切回中文。Provider 品牌名称始终保持原名。
+
 
 ## 快捷键
 
@@ -209,8 +174,9 @@ Provider 管理中可使用方向键或 `J` / `K` 选择，`Space` 启用或禁�
 所有布局都只有一个总框。标题相对实际框宽居中，Provider grid 作为紧凑内容块整体居中；框尺寸由内容自然计算，不会强制占满 terminal。80×24 已验证，更小尺寸会自动响应。
 
 ## Provider 管理
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/s.jpg?raw=true)</br>
 按 `S` 打开 Provider 管理，可启用、禁用和调整顺序。Real mode 默认启用 Codex、Grok；Demo mode 默认展示 6 个 Provider。选择分别保存，不会把 Demo 配置混入真实 reader。
+
 
 ## 自动发现 Provider
 
@@ -223,17 +189,19 @@ Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、�
 `ai` / `aiusage --menu` 的 Settings 可开关自动发现。Demo mode 完全离线，不执行真实 discovery。MiniMax、Qoder、Qoder CN、CodeBuddy 和 TraeCode 当前只探测 executable；在真实 reader 完成生产验证前，即使已安装也只显示“额度不支持”，不会自动产生额度。
 
 ## 看板位置
-
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/zuoxia.jpg?raw=true)</br>
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/youshang.jpg?raw=true)</br>
 按 `P` 在以下位置循环切换，并保存选择：
 
 ```text
 左上 / 顶部居中 / 右上 / 正中 / 左下 / 底部居中 / 右下
 ```
 
+
 移动的是整个自然尺寸看板，不会把框内内容拉散。
 
 ## 时间与时区
-
+https://github.com/hyd1aa/aiusage/blob/main/AIUsage/utc.jpg
 默认配置 `timezone = "system"`。AIUsage 每次启动和显示时都会使用操作系统当前时区，不会把旧的 system timezone 缓存在配置里；VPS 改变时区后，重新启动即可自动跟随。
 
 按 `Z` 可以选择“跟随系统”、常用 UTC offset，或以 15 分钟步进调整自定义 offset。支持 `UTC-12` 至 `UTC+14`，包括 `UTC+05:30`、`UTC+05:45` 和 `UTC+09:30`。设置会同时作用于系统时间和所有 Reset 时间。
@@ -307,6 +275,7 @@ macOS 尚未验证，可能可以运行；Windows 当前不支持。设置 `NO_C
 
 ## 卸载
 
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/xiezai.jpg?raw=true)</br>
 推荐从 `ai` 选择“卸载 AIUsage”，可明确选择保留或删除用户配置，并需要二次确认。
 
 ```bash
