@@ -5,6 +5,16 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Added a persistent `timezone` preference with live system-zone following,
+  fixed UTC offsets, quarter-hour custom offsets, and the `Z` selector.
+
+### Changed
+
+- Reset and system timestamps now use one selected display timezone and show
+  unambiguous numeric UTC offsets instead of timezone abbreviations.
+
 ## [0.1.1] - 2026-09-03
 
 ### Added

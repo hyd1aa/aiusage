@@ -32,18 +32,18 @@ AIUsage runs directly in the terminal without a web panel or background daemon. 
 │                                              │
 │   CODEX                                      │
 │   5h     ███████░░░  37% left                │
-│   Reset: Sep 03 02:50 CST                    │
+│   Reset: Sep 03 02:50 UTC+08                 │
 │   Week   ███████░░░  35% left                │
-│   Reset: Sep 07 10:27 CST                    │
+│   Reset: Sep 07 10:27 UTC+08                 │
 │                                              │
 │   GROK                                       │
 │   Week   █████████░  53% left                │
-│   Reset: Sep 05 23:14 CST                    │
+│   Reset: Sep 05 23:14 UTC+08                 │
 │                                              │
-│ System: 2026-09-02 23:43:32 CST              │
+│ System: 2026-09-02 23:43:32 UTC+08           │
 │ Usage updated: 23:43:15                      │
 │                                              │
-│ T Theme L Lang P Pos S Prov R Refresh Q Exit │
+│ T Th L Lang P Pos S Prov Z TZ R Ref Q Exit  │
 │                                              │
 └──────────────────────────────────────────────┘
 ```
@@ -134,6 +134,7 @@ An existing `language = "en"` setting remains English after upgrades. Provider b
 | `L` | Chinese / English |
 | `P` | Change dashboard position |
 | `S` | Manage providers |
+| `Z` | Select display timezone |
 | `R` | Refresh immediately |
 | `Q` | Exit |
 | `Esc` | Exit |
@@ -168,14 +169,33 @@ Positioning moves the complete natural-size box without stretching its internal 
 
 ## Time and timezones
 
-AIUsage converts reset epochs to the machine's local timezone and displays explicit labels such as `CST`, `EDT`, or `UTC`, preventing reset-time ambiguity between regions.
+The default is `timezone = "system"`. AIUsage reads the operating system's current timezone whenever it starts and renders; it never caches an old system timezone in configuration. Restarting after the VPS timezone changes automatically follows the new setting.
+
+Press `Z` to choose System, a common UTC offset, or a custom offset adjustable in 15-minute steps. Valid custom values span `UTC-12` through `UTC+14`, including `UTC+05:30`, `UTC+05:45`, and `UTC+09:30`. One display timezone applies to both System time and every Reset time.
+
+The UI always uses unambiguous numeric labels such as `UTC+08` and `UTC-04`. It never displays `CST`, `EST`, `EDT`, `Asia/Shanghai`, or `America/New_York`. System IANA timezone rules are still used internally, so daylight-saving offsets are calculated for the actual timestamp.
+
+AIUsage converts the absolute reset epoch; it does not merely replace a suffix. Given this original instant:
 
 ```text
-Chinese: 9月03日 02:50 CST
-English: Sep 03 02:50 CST
+2026-09-03 18:50 UTC
 ```
 
-System time includes the local timezone as well. AIUsage does not assume every user is in CST.
+With `timezone = "UTC"`:
+
+```text
+Sep 03 18:50 UTC
+```
+
+With `timezone = "UTC+08"`:
+
+```text
+Sep 04 02:50 UTC+08
+```
+
+The date genuinely crosses from September 3 to September 4. Chinese renders the latter as `9月04日 02:50 UTC+08`.
+
+If a VPS uses UTC but the user wants China Standard Time, set `timezone = "UTC+08"`. If the VPS itself already uses UTC+08, leave `timezone = "system"`.
 
 ## Configuration
 
@@ -191,11 +211,12 @@ Example:
 language = "zh"
 theme = "white"
 position = "center"
+timezone = "system"
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
 ```
 
-The file stores only language, theme, position, enabled providers, and ordering—never tokens, cookies, accounts, IP addresses, hostnames, or usage snapshots. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back. See [`config.example.toml`](config.example.toml).
+The file stores only language, theme, position, display timezone, enabled providers, and ordering—never tokens, cookies, accounts, IP addresses, hostnames, or usage snapshots. Older files without `timezone` automatically use `system`; no migration is required. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back. See [`config.example.toml`](config.example.toml).
 
 ## Privacy and security
 

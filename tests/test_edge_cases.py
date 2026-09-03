@@ -1,4 +1,5 @@
 import os
+import datetime as dt
 import re
 import tempfile
 import time
@@ -10,7 +11,8 @@ from aiusage import config
 from aiusage.cli import Dashboard
 from aiusage.models import Availability, ProviderUsage, RateLimitWindow
 from aiusage.providers import ProviderAdapter, REGISTRY
-from aiusage.render import ANSI, column_count, dashboard, reset_text, visible_len
+from aiusage.render import ANSI, column_count, dashboard, reset_text, system_text, visible_len
+from aiusage.timezones import convert, offset_label, parse_timezone, valid_timezone
 
 
 class ProviderEdgeCaseTests(unittest.TestCase):
@@ -150,16 +152,79 @@ class RenderingEdgeCaseTests(unittest.TestCase):
         try:
             os.environ["TZ"] = "America/New_York"
             time.tzset()
-            self.assertTrue(reset_text(1788375056, "en").endswith("EDT"))
+            self.assertTrue(reset_text(1788375056, "en").endswith("UTC-04"))
             os.environ["TZ"] = "Asia/Shanghai"
             time.tzset()
-            self.assertTrue(reset_text(1788375056, "zh").endswith("CST"))
+            self.assertTrue(reset_text(1788375056, "zh").endswith("UTC+08"))
         finally:
             if original is None:
                 os.environ.pop("TZ", None)
             else:
                 os.environ["TZ"] = original
             time.tzset()
+
+    def test_explicit_timezone_conversion_crosses_dates(self):
+        epoch = dt.datetime(2026, 9, 3, 18, 50, tzinfo=dt.timezone.utc).timestamp()
+        self.assertEqual(reset_text(epoch, "en", "UTC"), "Sep 03 18:50 UTC")
+        self.assertEqual(reset_text(epoch, "zh", "UTC+08"), "9月04日 02:50 UTC+08")
+        self.assertEqual(reset_text(epoch, "en", "UTC+08"), "Sep 04 02:50 UTC+08")
+        self.assertEqual(reset_text(epoch, "en", "UTC-04"), "Sep 03 14:50 UTC-04")
+
+    def test_positive_zone_to_negative_zone_can_move_to_previous_date(self):
+        epoch = dt.datetime(2026, 9, 4, 2, 0, tzinfo=dt.timezone.utc).timestamp()
+        self.assertTrue(reset_text(epoch, "en", "UTC-05").startswith("Sep 03 21:00"))
+
+    def test_half_hour_and_timezone_validation(self):
+        epoch = dt.datetime(2026, 9, 3, 18, 50, tzinfo=dt.timezone.utc).timestamp()
+        self.assertEqual(reset_text(epoch, "en", "UTC+05:30"), "Sep 04 00:20 UTC+05:30")
+        for value in ("UTC-12", "UTC", "UTC+14", "UTC+05:45", "UTC+09:30"):
+            self.assertTrue(valid_timezone(value))
+            parse_timezone(value)
+        for value in ("UTC+15", "UTC-13", "UTC+05:60", "GMT+08", "UTC+8", "Asia/Shanghai"):
+            self.assertFalse(valid_timezone(value))
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX timezone support")
+    def test_system_zone_is_live_and_dst_aware_but_label_is_numeric(self):
+        original = os.environ.get("TZ")
+        try:
+            os.environ["TZ"] = "UTC"
+            time.tzset()
+            summer = dt.datetime(2026, 7, 1, 12, tzinfo=dt.timezone.utc)
+            self.assertEqual(offset_label(convert(summer, "system")), "UTC")
+            os.environ["TZ"] = "Etc/GMT-8"
+            time.tzset()
+            self.assertEqual(offset_label(convert(summer, "system")), "UTC+08")
+            os.environ["TZ"] = "America/New_York"
+            time.tzset()
+            winter = dt.datetime(2026, 1, 1, 12, tzinfo=dt.timezone.utc)
+            self.assertEqual(offset_label(convert(summer, "system")), "UTC-04")
+            self.assertEqual(offset_label(convert(winter, "system")), "UTC-05")
+            output = system_text("en", "system", summer)
+            self.assertNotRegex(output, r"America/New_York|EDT|EST|CST")
+        finally:
+            if original is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = original
+            time.tzset()
+
+    def test_dashboard_uses_one_display_timezone_for_system_and_reset(self):
+        epoch = dt.datetime(2026, 9, 3, 18, 50, tzinfo=dt.timezone.utc).timestamp()
+        provider = ProviderUsage("test", "Test", Availability.AVAILABLE, (RateLimitWindow("Day", 50, epoch),))
+        output = "\n".join(dashboard(80, 24, [provider], None, language="zh", timezone="UTC+08"))
+        self.assertIn("9月04日 02:50 UTC+08", output)
+        self.assertIn("UTC+08", next(line for line in output.splitlines() if "系统时间" in line))
+        self.assertNotRegex(output, r"Asia/Shanghai|America/New_York|\b(?:CST|EST|EDT)\b")
+
+    def test_three_column_timezone_offset_is_not_truncated(self):
+        epoch = dt.datetime(2026, 9, 3, 18, 50, tzinfo=dt.timezone.utc).timestamp()
+        providers = [
+            ProviderUsage(str(index), f"P{index}", Availability.AVAILABLE, (RateLimitWindow("Day", 50, epoch),))
+            for index in range(6)
+        ]
+        output = "\n".join(dashboard(80, 24, providers, None, language="zh", demo=True, timezone="UTC+08"))
+        self.assertEqual(output.count("9月04日 02:50 UTC+08"), 6)
+        self.assertNotIn("UTC+ ", output)
 
     def test_white_and_green_themes_emit_distinct_styles(self):
         white = "\n".join(dashboard(80, 24, self.providers[:2], None, theme="white", color=True))
@@ -221,6 +286,26 @@ class KeyTests(unittest.TestCase):
             self.assertEqual(loaded.language, "zh")
             self.assertEqual(loaded.position, "bottom-left")
             self.assertNotEqual(loaded.demo_providers[:2], ["codex", "grok"])
+
+    def test_timezone_selector_and_persistence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            with mock.patch.object(config, "config_path", return_value=target):
+                board = Dashboard(True, config.Config())
+                board.key(b"Z")
+                self.assertTrue(board.timezone_selecting)
+                self.assertIn("时区", "\n".join(board.frame(80, 24)))
+                board.timezone_cursor = board.timezone_options.index("UTC+08")
+                board.key(b"\r")
+            self.assertEqual(config.load(target).timezone, "UTC+08")
+
+    def test_custom_timezone_selector_adjusts_by_quarter_hour(self):
+        board = Dashboard(True, config.Config())
+        board.key(b"Z")
+        board.timezone_cursor = len(board.timezone_options) - 1
+        self.assertEqual(board.timezone_options[-1], "UTC+05:30")
+        board.key(b"\x1b[C")
+        self.assertEqual(board.timezone_options[-1], "UTC+05:45")
 
 
 if __name__ == "__main__":

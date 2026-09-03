@@ -4,6 +4,7 @@ import unicodedata
 
 from .i18n import tr
 from .models import Availability, ProviderUsage
+from .timezones import convert, from_epoch, offset_label
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 MIN_CELL_WIDTH = 24
@@ -42,31 +43,20 @@ def _pad(value, width):
     return value + " " * max(0, width - visible_len(value))
 
 
-def _timezone_name(value):
-    name = value.tzname()
-    if name:
-        return name
-    offset = value.utcoffset()
-    if offset is None:
-        return "UTC"
-    hours = offset.total_seconds() / 3600
-    return f"UTC{hours:+g}"
-
-
-def reset_text(epoch, language="en"):
-    """Format a reset epoch in the user's local timezone, always with a zone."""
+def reset_text(epoch, language="en", timezone="system"):
+    """Convert and format a reset epoch in the selected display timezone."""
     if not isinstance(epoch, (int, float)):
         return "?"
-    value = dt.datetime.fromtimestamp(epoch).astimezone()
-    zone = _timezone_name(value)
+    value = from_epoch(epoch, timezone)
+    zone = offset_label(value)
     if language == "zh":
         return f"{value.month}月{value.day:02d}日 {value:%H:%M} {zone}"
     return f"{value:%b %d %H:%M} {zone}"
 
 
-def system_text(language="en"):
-    value = dt.datetime.now().astimezone()
-    zone = _timezone_name(value)
+def system_text(language="en", timezone="system", now=None):
+    value = convert(now or dt.datetime.now(dt.timezone.utc), timezone)
+    zone = offset_label(value)
     return _label_value(tr(language, "system"), f"{value:%Y-%m-%d %H:%M:%S} {zone}", language)
 
 
@@ -83,7 +73,7 @@ def column_count(count, width):
     return min(count, capacity)
 
 
-def _provider_lines(provider: ProviderUsage, width: int, language: str):
+def _provider_lines(provider: ProviderUsage, width: int, language: str, timezone: str):
     suffix = f"  ! {tr(language, 'stale')}" if provider.stale else ""
     lines = [provider.name.upper() + suffix]
     if provider.availability != Availability.AVAILABLE or not provider.windows:
@@ -97,7 +87,11 @@ def _provider_lines(provider: ProviderUsage, width: int, language: str):
         bar = "█" * fill + "░" * (bar_width - fill)
         label = "Weekly" if window.label == "Week" and language == "en" else window.label
         lines.append(f"{_fit(label, 6):<6} {bar} {remaining:>3}% {tr(language, 'left')}")
-        lines.append(_label_value(tr(language, "reset"), reset_text(window.reset_at, language), language))
+        reset_value = reset_text(window.reset_at, language, timezone)
+        reset_line = _label_value(tr(language, "reset"), reset_value, language)
+        # In narrow grids preserve the complete instant and UTC offset; the
+        # repeated Reset label is less important than an unambiguous timestamp.
+        lines.append(reset_line if visible_len(reset_line) <= width else reset_value)
     return [_fit(line, width) for line in lines]
 
 
@@ -153,6 +147,7 @@ def dashboard(
     demo=False,
     theme="white",
     color=False,
+    timezone="system",
 ):
     width, height = max(1, width), max(1, height)
     title = f"AI USAGE [{tr(language, 'demo')}]" if demo else "AI USAGE"
@@ -161,7 +156,7 @@ def dashboard(
 
     help_text = tr(language, "help")
     compact_help = tr(language, "help_compact")
-    updated_at = updated.astimezone() if updated else None
+    updated_at = convert(updated, timezone) if updated else None
     stamp = updated_at.strftime("%H:%M:%S") if updated_at else "--:--:--"
     update_text = _label_value(tr(language, "updated"), stamp, language)
 
@@ -170,14 +165,14 @@ def dashboard(
     preferred_cell = {1: 40, 2: 27, 3: 24}[columns]
     cell_width = min(preferred_cell, max(1, (content_capacity - CELL_GAP * (columns - 1)) // columns))
     grid_width = cell_width * columns + CELL_GAP * (columns - 1)
-    desired_outer = max(grid_width + 4, visible_len(compact_help) + 4, visible_len(system_text(language)) + 4)
+    desired_outer = max(grid_width + 4, visible_len(compact_help) + 4, visible_len(system_text(language, timezone)) + 4)
     outer_width = min(width, desired_outer)
     inner_width = outer_width - 2
     content_width = max(1, inner_width - 2)
     cell_width = min(cell_width, max(1, (content_width - CELL_GAP * (columns - 1)) // columns))
     grid_width = cell_width * columns + CELL_GAP * (columns - 1)
 
-    blocks = [_provider_lines(provider, cell_width, language) for provider in providers]
+    blocks = [_provider_lines(provider, cell_width, language, timezone) for provider in providers]
 
     content = [""]
     content_kinds = ["normal"]
@@ -197,7 +192,7 @@ def dashboard(
             content_kinds.append("normal")
 
     chosen_help = help_text if visible_len(help_text) <= content_width - 1 else compact_help
-    content.extend(["", " " + system_text(language), " " + update_text, "", " " + chosen_help, ""])
+    content.extend(["", " " + system_text(language, timezone), " " + update_text, "", " " + chosen_help, ""])
     content_kinds.extend(["normal", "normal", "muted", "normal", "muted", "normal"])
 
     max_content_lines = max(0, height - 2)
@@ -233,6 +228,27 @@ def selector(width, height, registry, enabled, cursor, language, theme="white", 
         lines.append("│ " + _pad(value, inner - 2) + " │")
     help_value = _fit(tr(language, "select_help"), inner - 2)
     lines.append("│ " + _pad(help_value, inner - 2) + " │")
+    lines.append("└" + "─" * inner + "┘")
+    positioned = _position(lines, width, height, "center")
+    top_padding = len(positioned) - len(lines)
+    styled = _style(positioned[top_padding:], ["normal"] * len(lines), theme, color)
+    return positioned[:top_padding] + styled
+
+
+def timezone_selector(width, height, options, cursor, language, theme="white", color=False):
+    box_width = min(60, max(34, width - 4))
+    inner = box_width - 2
+    lines = [_top_border(box_width, tr(language, "timezone"))]
+    for index, value in enumerate(options):
+        pointer = "›" if index == cursor else " "
+        if value == "system":
+            label = tr(language, "system_zone")
+        elif index == len(options) - 1:
+            label = f"{tr(language, 'custom_zone')}: {value}"
+        else:
+            label = value
+        lines.append("│ " + _pad(f"{pointer} {label}", inner - 2) + " │")
+    lines.append("│ " + _pad(_fit(tr(language, "timezone_help"), inner - 2), inner - 2) + " │")
     lines.append("└" + "─" * inner + "┘")
     positioned = _position(lines, width, height, "center")
     top_padding = len(positioned) - len(lines)

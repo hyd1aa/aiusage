@@ -13,7 +13,8 @@ from . import __version__, config
 from .demo import demo_usage
 from .models import Availability, ProviderUsage
 from .providers import REGISTRY
-from .render import dashboard, selector
+from .render import dashboard, selector, timezone_selector
+from .timezones import MINUTES_MAX, MINUTES_MIN, PRESETS, offset_minutes, offset_setting
 
 REFRESH_SECONDS = 30
 
@@ -30,6 +31,9 @@ class Dashboard:
         self.selecting = False
         self.cursor = 0
         self.draft = []
+        self.timezone_selecting = False
+        self.timezone_cursor = 0
+        self.timezone_options = []
 
     @property
     def enabled(self):
@@ -70,10 +74,28 @@ class Dashboard:
         with self.lock:
             if self.selecting:
                 return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language, self.cfg.theme, self.color)
+            if self.timezone_selecting:
+                return timezone_selector(width, height, self.timezone_options, self.timezone_cursor, self.cfg.language, self.cfg.theme, self.color)
             states = [self.states.get(key, ProviderUsage(key, REGISTRY[key].name, Availability.UNAVAILABLE)) for key in self.enabled]
-            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo, self.cfg.theme, self.color)
+            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo, self.cfg.theme, self.color, self.cfg.timezone)
 
     def key(self, key):
+        if self.timezone_selecting:
+            if key == b"\x1b":
+                self.timezone_selecting = False
+            elif key in (b"j", b"J", b"\x1b[B"):
+                self.timezone_cursor = min(len(self.timezone_options) - 1, self.timezone_cursor + 1)
+            elif key in (b"k", b"K", b"\x1b[A"):
+                self.timezone_cursor = max(0, self.timezone_cursor - 1)
+            elif key in (b"h", b"H", b"\x1b[D", b"l", b"L", b"\x1b[C") and self.timezone_cursor == len(self.timezone_options) - 1:
+                step = -15 if key in (b"h", b"H", b"\x1b[D") else 15
+                current = offset_minutes(self.timezone_options[-1])
+                self.timezone_options[-1] = offset_setting(max(MINUTES_MIN, min(MINUTES_MAX, current + step)))
+            elif key in (b"\r", b"\n"):
+                self.cfg.timezone = self.timezone_options[self.timezone_cursor]
+                config.save(self.cfg)
+                self.timezone_selecting = False
+            return False
         if self.selecting:
             if key in (b"\x1b",):
                 self.selecting = False
@@ -117,6 +139,11 @@ class Dashboard:
             self.selecting = True
             self.draft = list(self.enabled)
             self.cursor = 0
+        elif key in (b"z", b"Z"):
+            custom = self.cfg.timezone if self.cfg.timezone not in PRESETS else "UTC+05:30"
+            self.timezone_options = list(PRESETS) + [custom]
+            self.timezone_cursor = self.timezone_options.index(self.cfg.timezone) if self.cfg.timezone in self.timezone_options else len(self.timezone_options) - 1
+            self.timezone_selecting = True
         elif key in (b"r", b"R"):
             self.refresh()
         return False
@@ -191,7 +218,7 @@ def main(argv=None):
             ready, _, _ = select.select([sys.stdin], [], [], 0.2)
             if ready:
                 key = os.read(sys.stdin.fileno(), 1)
-                if key == b"\x1b" and board.selecting:
+                if key == b"\x1b" and (board.selecting or board.timezone_selecting):
                     extra, _, _ = select.select([sys.stdin], [], [], 0.02)
                     if extra:
                         key += os.read(sys.stdin.fileno(), 2)

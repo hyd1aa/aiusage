@@ -1,5 +1,6 @@
 language = "zh"
 theme = "white"
 position = "center"
+timezone = "system"
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]

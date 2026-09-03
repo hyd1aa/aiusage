@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .providers import REGISTRY
+from .timezones import valid_timezone
 
 POSITIONS = ("top-left", "top-center", "top-right", "center", "bottom-left", "bottom-center", "bottom-right")
 THEMES = ("white", "green")
@@ -14,6 +15,7 @@ class Config:
     language: str = "zh"
     theme: str = "white"
     position: str = "center"
+    timezone: str = "system"
     real_providers: list[str] = field(default_factory=lambda: ["codex", "grok"])
     demo_providers: list[str] = field(default_factory=lambda: list(DEMO_DEFAULT))
 
@@ -45,6 +47,7 @@ def load(path: Path | None = None) -> Config:
     cfg.language = values.get("language", '"zh"').strip('"')
     cfg.theme = values.get("theme", '"white"').strip('"')
     cfg.position = values.get("position", '"center"').strip('"')
+    cfg.timezone = values.get("timezone", '"system"').strip('"')
     for attr in ("real_providers", "demo_providers"):
         if attr in values:
             setattr(cfg, attr, _array(values[attr]))
@@ -54,6 +57,8 @@ def load(path: Path | None = None) -> Config:
         cfg.theme = "white"
     if cfg.position not in POSITIONS:
         cfg.position = "center"
+    if not valid_timezone(cfg.timezone):
+        cfg.timezone = "system"
     cfg.real_providers = _valid(cfg.real_providers) or ["codex", "grok"]
     cfg.demo_providers = _valid(cfg.demo_providers) or list(DEMO_DEFAULT)
     return cfg
@@ -71,6 +76,7 @@ def save(cfg: Config, path: Path | None = None) -> bool:
         f'language = "{cfg.language}"\n'
         f'theme = "{cfg.theme}"\n'
         f'position = "{cfg.position}"\n'
+        f'timezone = "{cfg.timezone}"\n'
         f'real_providers = [{quoted(_valid(cfg.real_providers))}]\n'
         f'demo_providers = [{quoted(_valid(cfg.demo_providers))}]\n'
     )

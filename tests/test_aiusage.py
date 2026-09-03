@@ -57,6 +57,21 @@ class AiUsageTests(unittest.TestCase):
     def test_white_theme_is_default(self):
         self.assertEqual(config.Config().theme, "white")
 
+    def test_system_timezone_is_default(self):
+        self.assertEqual(config.Config().timezone, "system")
+
+    def test_legacy_config_without_timezone_defaults_to_system(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            target.write_text('language = "en"\ntheme = "green"\n')
+            self.assertEqual(config.load(target).timezone, "system")
+
+    def test_invalid_timezone_config_falls_back_to_system(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "config.toml"
+            target.write_text('timezone = "Asia/Shanghai"\n')
+            self.assertEqual(config.load(target).timezone, "system")
+
     def test_theme_toggle_persists(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "config.toml"

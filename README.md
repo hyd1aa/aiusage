@@ -32,18 +32,18 @@ AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。输入
 │                                              │
 │   CODEX                                      │
 │   5h     ███████░░░  37% 剩余                │
-│   重置：9月03日 02:50 CST                    │
+│   重置：9月03日 02:50 UTC+08                 │
 │   Week   ███████░░░  35% 剩余                │
-│   重置：9月07日 10:27 CST                    │
+│   重置：9月07日 10:27 UTC+08                 │
 │                                              │
 │   GROK                                       │
 │   Week   █████████░  53% 剩余                │
-│   重置：9月05日 23:14 CST                    │
+│   重置：9月05日 23:14 UTC+08                 │
 │                                              │
-│ 系统时间：2026-09-02 23:43:32 CST            │
+│ 系统时间：2026-09-02 23:43:32 UTC+08         │
 │ 数据更新：23:43:15                           │
 │                                              │
-│ T主题 L语言 P位置 S服务 R刷新 Q退出          │
+│ T主题 L语言 P位置 S服务 Z时区 R刷新 Q退出    │
 │                                              │
 └──────────────────────────────────────────────┘
 ```
@@ -134,6 +134,7 @@ AIUsage 永远使用用户自己的 terminal background，不设置白色、绿�
 | `L` | 中文 / English |
 | `P` | 切换看板位置 |
 | `S` | Provider 管理 |
+| `Z` | 选择显示时区 |
 | `R` | 立即刷新 |
 | `Q` | 退出 |
 | `Esc` | 退出 |
@@ -167,14 +168,33 @@ Provider 管理中可使用方向键或 `J` / `K` 选择，`Space` 启用或禁�
 
 ## 时间与时区
 
-AIUsage 会把 reset epoch 转换为运行机器的本地时区，并直接显示 `CST`、`EDT`、`UTC` 等时区标签，避免不同地区用户误读重置时间。
+默认配置 `timezone = "system"`。AIUsage 每次启动和显示时都会使用操作系统当前时区，不会把旧的 system timezone 缓存在配置里；VPS 改变时区后，重新启动即可自动跟随。
+
+按 `Z` 可以选择“跟随系统”、常用 UTC offset，或以 15 分钟步进调整自定义 offset。支持 `UTC-12` 至 `UTC+14`，包括 `UTC+05:30`、`UTC+05:45` 和 `UTC+09:30`。设置会同时作用于系统时间和所有 Reset 时间。
+
+UI 统一显示无歧义的 numeric UTC offset，例如 `UTC+08`、`UTC-04`，不会显示 `CST`、`EST`、`EDT`、`Asia/Shanghai` 或 `America/New_York`。内部仍使用操作系统的 IANA 时区规则，因此夏令时会按目标时间点正确计算。
+
+AIUsage 从 reset epoch 的绝对时间点进行真正的时区转换，而不是只替换标签。例如原始时间为：
 
 ```text
-中文：  9月03日 02:50 CST
-English: Sep 03 02:50 CST
+2026-09-03 18:50 UTC
 ```
 
-系统时间同样显示本机时区。AIUsage 不假设所有用户都处于 CST。
+使用 `timezone = "UTC"`：
+
+```text
+9月03日 18:50 UTC
+```
+
+使用 `timezone = "UTC+08"`：
+
+```text
+9月04日 02:50 UTC+08
+```
+
+日期确实从 3 日跨到 4 日。英文界面对应显示 `Sep 04 02:50 UTC+08`。
+
+如果中国用户的 VPS 仍是 UTC，但希望按北京时间查看，可以设置 `timezone = "UTC+08"`；如果 VPS 本身已是 UTC+08，保留 `timezone = "system"` 即可。
 
 ## 配置文件
 
@@ -190,11 +210,12 @@ English: Sep 03 02:50 CST
 language = "zh"
 theme = "white"
 position = "center"
+timezone = "system"
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
 ```
 
-这里只保存语言、主题、位置、启用的 Provider 和排序，不保存 token、cookie、账号、IP、hostname 或额度快照。文件采用仅当前用户可读写权限并原子写入；配置缺失、损坏或不可读时会安全回退。完整示例见 [`config.example.toml`](config.example.toml)。
+这里只保存语言、主题、位置、显示时区、启用的 Provider 和排序，不保存 token、cookie、账号、IP、hostname 或额度快照。旧配置没有 `timezone` 时会自动按 `system` 处理，无需迁移。文件采用仅当前用户可读写权限并原子写入；配置缺失、损坏或不可读时会安全回退。完整示例见 [`config.example.toml`](config.example.toml)。
 
 ## 隐私与安全
 
