@@ -216,7 +216,7 @@ def dashboard(
     return positioned[:top_padding] + styled
 
 
-def selector(width, height, registry, enabled, cursor, language, theme="white", color=False):
+def selector(width, height, registry, enabled, cursor, language, theme="white", color=False, discovery=None):
     box_width = min(58, max(30, width - 4))
     inner = box_width - 2
     lines = ["┌" + "─" * inner + "┐"]
@@ -226,7 +226,13 @@ def selector(width, height, registry, enabled, cursor, language, theme="white", 
         mark = "x" if key in enabled else " "
         pointer = "›" if index == cursor else " "
         order = enabled.index(key) + 1 if key in enabled else 0
+        state = discovery.get(key) if discovery else None
+        status = tr(language, state.reason) if state else ""
         value = f"{pointer} [{mark}] {adapter.name}" + (f"  {order}" if order else "")
+        if status:
+            available = max(0, inner - 3 - visible_len(value))
+            if available >= 5:
+                value += "  " + _fit(status, available - 2)
         lines.append("│ " + _pad(value, inner - 2) + " │")
     help_value = _fit(tr(language, "select_help"), inner - 2)
     lines.append("│ " + _pad(help_value, inner - 2) + " │")

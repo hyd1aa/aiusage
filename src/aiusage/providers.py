@@ -229,11 +229,12 @@ def discover_all(registry=None, timeout=DISCOVERY_TIMEOUT):
 REGISTRY = OrderedDict((adapter.key, adapter) for adapter in (
     ProviderAdapter("codex", "Codex", read_codex, _command("codex"), _codex_ready),
     ProviderAdapter("grok", "Grok", read_grok, _command("grok"), _grok_ready),
-    ProviderAdapter("antigravity", "Antigravity", None, _command("antigravity")),
-    ProviderAdapter("claude", "Claude", None, _command("claude")),
-    ProviderAdapter("gemini", "Gemini", None, _command("gemini")),
-    ProviderAdapter("deepseek", "DeepSeek", None, _command("deepseek")),
-    ProviderAdapter("kimi", "Kimi", None, _command("kimi")),
-    ProviderAdapter("glm", "GLM", None, _command("glm")),
-    ProviderAdapter("zai", "z.ai", None, _command("zai", "z.ai")),
+    ProviderAdapter("minimax", "MiniMax", None, _command("mmx")),
+    ProviderAdapter("qoder", "Qoder", None, _command("qoder")),
+    ProviderAdapter("qodercn", "Qoder CN", None, _command("qodercn")),
+    ProviderAdapter("codebuddy", "CodeBuddy", None, _command("codebuddy", "cbc")),
+    ProviderAdapter("traecode", "TraeCode", None, _command("traecli")),
+    # ZCode currently has an official Linux desktop application, but no
+    # verified headless CLI. Keep the UI candidate without guessing a binary.
+    ProviderAdapter("zcode", "ZCode", None, lambda: False),
 ))

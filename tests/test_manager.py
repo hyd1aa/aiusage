@@ -146,20 +146,23 @@ class ManagerActionTests(unittest.TestCase):
             self.assertEqual(loaded.timezone, "UTC+08")
 
     def test_provider_save_and_cancel(self):
-        claude_number = str(list(REGISTRY).index("claude") + 1)
-        manager = Manager(config.Config(), input_fn=inputs(claude_number, "0"), output=io.StringIO())
-        manager.provider_menu()
+        minimax_number = str(list(REGISTRY).index("minimax") + 1)
+        manager = Manager(config.Config(), input_fn=inputs(minimax_number, "0"), output=io.StringIO())
+        with mock.patch("aiusage.manager.discover_all", return_value={key: mock.Mock(reason="not_installed") for key in REGISTRY}):
+            manager.provider_menu()
         self.assertEqual(manager.cfg.real_providers, ["codex", "grok"])
         with tempfile.TemporaryDirectory() as directory, mock.patch.object(config, "config_path", return_value=Path(directory) / "config.toml"):
-            manager.input = inputs(claude_number, "s")
-            manager.provider_menu()
-            self.assertIn("claude", manager.cfg.real_providers)
+            manager.input = inputs(minimax_number, "s")
+            with mock.patch("aiusage.manager.discover_all", return_value={key: mock.Mock(reason="not_installed") for key in REGISTRY}):
+                manager.provider_menu()
+            self.assertIn("minimax", manager.cfg.real_providers)
 
     def test_manager_provider_disable_is_respected_by_discovery(self):
         grok_number = str(list(REGISTRY).index("grok") + 1)
         manager = Manager(config.Config(), input_fn=inputs(grok_number, "s"), output=io.StringIO())
         with tempfile.TemporaryDirectory() as directory, mock.patch.object(config, "config_path", return_value=Path(directory) / "config.toml"):
-            manager.provider_menu()
+            with mock.patch("aiusage.manager.discover_all", return_value={key: mock.Mock(reason="not_installed") for key in REGISTRY}):
+                manager.provider_menu()
         self.assertNotIn("grok", manager.cfg.real_providers)
         self.assertIn("grok", manager.cfg.disabled_providers)
 

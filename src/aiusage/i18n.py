@@ -9,6 +9,8 @@ TEXT = {
         "select_help": "↑/↓ Select  Space Toggle  U/D Reorder  Enter Save  Esc Cancel",
         "timezone_help": "↑/↓ Select  ←/→ Adjust custom  Enter Save  Esc Cancel",
         "discovered": "New provider discovered",
+        "unsupported": "Usage unsupported", "needs_login": "Needs login", "ready": "Ready",
+        "timeout": "Discovery timeout", "malformed": "Discovery error",
     },
     "zh": {
         "demo": "演示", "system": "系统时间", "updated": "数据更新", "reset": "重置",
@@ -20,6 +22,8 @@ TEXT = {
         "select_help": "↑/↓ 选择  空格 启用  U/D 排序  Enter 保存  Esc 取消",
         "timezone_help": "↑/↓ 选择  ←/→ 调整自定义  Enter 保存  Esc 取消",
         "discovered": "已发现新服务",
+        "unsupported": "额度不支持", "needs_login": "需要登录", "ready": "已就绪",
+        "timeout": "探测超时", "malformed": "探测异常",
     },
 }
 

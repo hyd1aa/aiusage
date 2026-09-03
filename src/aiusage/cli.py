@@ -103,7 +103,7 @@ class Dashboard:
         width, height = width or size.columns, height or size.lines
         with self.lock:
             if self.selecting:
-                return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language, self.cfg.theme, self.color)
+                return selector(width, height, REGISTRY, self.draft, self.cursor, self.cfg.language, self.cfg.theme, self.color, self.discovery_states)
             if self.timezone_selecting:
                 return timezone_selector(width, height, self.timezone_options, self.timezone_cursor, self.cfg.language, self.cfg.theme, self.color)
             states = [self.states.get(key, ProviderUsage(key, REGISTRY[key].name, Availability.UNAVAILABLE)) for key in self.enabled]

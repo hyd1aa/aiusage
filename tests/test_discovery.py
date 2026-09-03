@@ -89,11 +89,11 @@ class DashboardDiscoveryTests(unittest.TestCase):
 
     def test_new_provider_is_appended_and_order_preserved(self):
         board = Dashboard(False, config.Config(real_providers=["codex", "grok"]))
-        with mock.patch("aiusage.cli.discover_all", return_value=result_for("antigravity", READY)), mock.patch("aiusage.cli.config.save"):
-            self.assertEqual(board.discover(), ["Antigravity"])
-        self.assertEqual(board.enabled, ["codex", "grok", "antigravity"])
-        self.assertIn("Antigravity", board.notice)
-        self.assertIn("已发现新服务：Antigravity", "\n".join(board.frame(80, 24)))
+        with mock.patch("aiusage.cli.discover_all", return_value=result_for("minimax", READY)), mock.patch("aiusage.cli.config.save"):
+            self.assertEqual(board.discover(), ["MiniMax"])
+        self.assertEqual(board.enabled, ["codex", "grok", "minimax"])
+        self.assertIn("MiniMax", board.notice)
+        self.assertIn("已发现新服务：MiniMax", "\n".join(board.frame(80, 24)))
 
     def test_disabled_by_user_is_not_reenabled(self):
         board = Dashboard(False, config.Config(real_providers=["codex", "grok"]))
@@ -136,11 +136,11 @@ class DashboardDiscoveryTests(unittest.TestCase):
         self.assertEqual(calls, ["discover", "refresh", "discover", "refresh"])
 
     def test_cli_removed_or_session_lost_keeps_provider_order(self):
-        board = Dashboard(False, config.Config(real_providers=["codex", "grok", "antigravity"]))
+        board = Dashboard(False, config.Config(real_providers=["codex", "grok", "minimax"]))
         for state in (NOT_INSTALLED, NEEDS_LOGIN):
-            with mock.patch("aiusage.cli.discover_all", return_value=result_for("antigravity", state)):
+            with mock.patch("aiusage.cli.discover_all", return_value=result_for("minimax", state)):
                 board.discover()
-            self.assertEqual(board.enabled, ["codex", "grok", "antigravity"])
+            self.assertEqual(board.enabled, ["codex", "grok", "minimax"])
 
     def test_timeout_preserves_previous_discovery_state(self):
         board = Dashboard(False, config.Config())
@@ -159,7 +159,7 @@ class DashboardDiscoveryTests(unittest.TestCase):
 
     def test_narrow_layout_survives_discovered_provider(self):
         board = Dashboard(False, config.Config(real_providers=["codex", "grok"]))
-        with mock.patch("aiusage.cli.discover_all", return_value=result_for("antigravity", READY)), mock.patch("aiusage.cli.config.save"):
+        with mock.patch("aiusage.cli.discover_all", return_value=result_for("minimax", READY)), mock.patch("aiusage.cli.config.save"):
             board.discover()
         lines = board.frame(32, 20)
         self.assertLessEqual(max(map(len, lines)), 32)
@@ -183,7 +183,7 @@ class DiscoveryManagementTests(unittest.TestCase):
             rows = collect(config.Config(), github_ok=False)
         rendered = "\n".join(f"{name}:{detail}" for name, _ok, detail in rows)
         self.assertIn("Codex:ready", rendered)
-        self.assertIn("Antigravity:not_installed", rendered)
+        self.assertIn("MiniMax:not_installed", rendered)
         self.assertNotRegex(rendered.lower(), r"token|cookie|authorization|password")
 
 

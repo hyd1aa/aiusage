@@ -11,13 +11,18 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
   usage-support, usability, and reason states.
 - Added startup discovery, five-minute periodic discovery, `R` discovery, and
   persistent automatic discovery controls.
-- Added an Antigravity registry/UI/demo placeholder without a real usage reader.
+- Added VPS-oriented discovery candidates for MiniMax, Qoder, Qoder CN,
+  CodeBuddy, and TraeCode.
+- Added a ZCode UI candidate explicitly marked ineligible until an official
+  headless CLI exists.
 
 ### Changed
 
 - Explicitly disabled Providers remain hidden across future discovery passes,
   while removed CLIs and expired sessions retain their configured order.
 - Diagnostics now report sanitized discovery states for every Provider.
+- Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
+  enabled, demo, disabled, and ordering configuration.
 
 ## [0.2.0] - 2026-09-03
 

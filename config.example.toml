@@ -4,5 +4,5 @@ position = "center"
 timezone = "system"
 auto_discover = true
 real_providers = ["codex", "grok"]
-demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+demo_providers = ["codex", "grok", "minimax", "qoder", "codebuddy", "traecode"]
 disabled_providers = []

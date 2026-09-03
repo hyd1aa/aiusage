@@ -54,7 +54,7 @@ AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。输入
 
 `aiusage --demo` 使用固定演示数据，可用于 UI 预览、README 截图、布局测试和中英文测试。界面会明确显示 **`[演示]`**。
 
-Demo/UI 已准备 Claude、Gemini、DeepSeek、Kimi、GLM 和 z.ai，但这些 Provider **尚无真实额度 reader**，演示百分比不能视为实际额度。完整 80×24 文本效果见 [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt)。
+默认 Demo 展示 Codex、Grok、MiniMax、Qoder、CodeBuddy 和 TraeCode。除 Codex、Grok 外，其余项目当前仅用于 UI 演示，百分比不能视为真实账号额度。完整 80×24 文本效果见 [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt)。
 
 ## 一键安装
 
@@ -147,17 +147,16 @@ aiusage --demo --snapshot --size 80x24
 
 ## 当前支持情况
 
-| Provider | 真实额度 | Demo / UI | 状态 |
-| --- | --- | --- | --- |
-| Codex | ✅ | ✅ | 已支持 |
-| Grok | ✅ | ✅ | 已支持 |
-| Antigravity | ❌ | ✅ | Registry / UI / Demo，暂无真实 reader |
-| Claude | ❌ | ✅ | 仅 UI / Demo |
-| Gemini | ❌ | ✅ | 仅 UI / Demo |
-| DeepSeek | ❌ | ✅ | 仅 UI / Demo |
-| Kimi | ❌ | ✅ | 仅 UI / Demo |
-| GLM | ❌ | ✅ | 仅 UI / Demo |
-| z.ai | ❌ | ✅ | 仅 UI / Demo |
+| Provider | VPS CLI | 自动发现 | 真实额度 | 状态 |
+| --- | --- | --- | --- | --- |
+| Codex | ✅ | ✅ | ✅ | VERIFIED |
+| Grok | ✅ | ✅ | ✅ | VERIFIED |
+| MiniMax (`mmx`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；官方 quota JSON 待登录环境实测 |
+| Qoder (`qoder`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；官方 SDK quota 待实测 |
+| Qoder CN (`qodercn`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY；独立账号与 SDK |
+| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY；暂无安全 quota reader |
+| TraeCode (`traecli`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY；企业权限，暂无 quota reader |
+| ZCode | ❌ | ❌ | ❌ | NOT_ELIGIBLE；目前是 Linux 桌面应用 |
 
 真实模式绝不会使用 Demo 数据冒充额度。启用但没有可靠 reader 的 Provider，会如实显示“未安装”“不可用”或“不支持”。
 
@@ -221,7 +220,7 @@ Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、�
 
 如果用户通过 `S` 或管理菜单明确关闭某个 Provider，AIUsage 会记录 `disabled_by_user`，后续 discovery 不会强制重新启用；手动再次开启即可清除该标记。CLI 被卸载或 session 失效时也会保留原顺序，方便恢复后继续使用。
 
-`ai` / `aiusage --menu` 的 Settings 可开关自动发现。Demo mode 完全离线，不执行真实 discovery。本次仅为 Antigravity 增加 registry/UI/Demo 占位，**没有实现或伪造 Antigravity 真实额度 reader**。
+`ai` / `aiusage --menu` 的 Settings 可开关自动发现。Demo mode 完全离线，不执行真实 discovery。MiniMax、Qoder、Qoder CN、CodeBuddy 和 TraeCode 当前只探测 executable；在真实 reader 完成生产验证前，即使已安装也只显示“额度不支持”，不会自动产生额度。
 
 ## 看板位置
 
@@ -280,7 +279,7 @@ position = "center"
 timezone = "system"
 auto_discover = true
 real_providers = ["codex", "grok"]
-demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+demo_providers = ["codex", "grok", "minimax", "qoder", "codebuddy", "traecode"]
 disabled_providers = []
 ```
 

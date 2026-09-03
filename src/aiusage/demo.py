@@ -9,13 +9,12 @@ from .providers import REGISTRY
 VALUES = {
     "codex": (("5h", 83, 2.2), ("Week", 61, 74)),
     "grok": (("Cycle", 72, 51),),
-    "antigravity": (("Daily", 64, 10),),
-    "claude": (("5h", 48, 3.5),),
-    "gemini": (("Daily", 91, 8),),
-    "deepseek": (("Daily", 66, 11),),
-    "kimi": (("Monthly", 37, 240),),
-    "glm": (("Daily", 79, 13),),
-    "zai": (("Cycle", 55, 36),),
+    "minimax": (("5h", 64, 4), ("Week", 42, 82)),
+    "qoder": (("Cycle", 91, 96),),
+    "qodercn": (("Cycle", 76, 72),),
+    "codebuddy": (("Credits", 66, 120),),
+    "traecode": (("Cycle", 37, 240),),
+    "zcode": (("Cycle", 55, 36),),
 }
 
 

@@ -54,7 +54,7 @@ There is one outer box; providers do not get individual boxes. The box takes its
 
 `aiusage --demo` uses deterministic fixtures for UI previews, README captures, responsive layout tests, and i18n checks. The dashboard is prominently marked **`[DEMO]`**.
 
-Claude, Gemini, DeepSeek, Kimi, GLM, and z.ai are UI/demo-ready but **do not have real usage readers**. Their demo percentages are not account data. See the full 80×24 text capture at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt).
+The default demo shows Codex, Grok, MiniMax, Qoder, CodeBuddy, and TraeCode. Except for Codex and Grok, these are UI fixtures only; their percentages are not account data. See the full 80×24 text capture at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt).
 
 ## Installation
 
@@ -147,17 +147,16 @@ aiusage --demo --snapshot --size 80x24
 
 ## Provider support
 
-| Provider | Real usage | Demo/UI | Status |
-| --- | --- | --- | --- |
-| Codex | ✅ | ✅ | Supported |
-| Grok | ✅ | ✅ | Supported |
-| Antigravity | ❌ | ✅ | Registry/UI/demo only; no real reader |
-| Claude | ❌ | ✅ | UI/demo only |
-| Gemini | ❌ | ✅ | UI/demo only |
-| DeepSeek | ❌ | ✅ | UI/demo only |
-| Kimi | ❌ | ✅ | UI/demo only |
-| GLM | ❌ | ✅ | UI/demo only |
-| z.ai | ❌ | ✅ | UI/demo only |
+| Provider | VPS CLI | Discovery | Real usage | Status |
+| --- | --- | --- | --- | --- |
+| Codex | ✅ | ✅ | ✅ | VERIFIED |
+| Grok | ✅ | ✅ | ✅ | VERIFIED |
+| MiniMax (`mmx`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; official quota JSON awaits signed-in validation |
+| Qoder (`qoder`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; official SDK quota awaits validation |
+| Qoder CN (`qodercn`) | ✅ | ✅ | 🚧 | DISCOVERY_ONLY; separate account and SDK |
+| CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY; no safe quota reader |
+| TraeCode (`traecli`) | ✅ | ✅ | ❌ | DISCOVERY_ONLY; enterprise entitlement, no quota reader |
+| ZCode | ❌ | ❌ | ❌ | NOT_ELIGIBLE; currently a Linux desktop app |
 
 Real mode never substitutes demo values. An enabled provider without a verified reader is reported honestly as `Not installed`, `Unavailable`, or `Not supported`.
 
@@ -221,7 +220,7 @@ Discovery checks installation, availability of a real reader, local authenticati
 
 When a user explicitly disables a Provider through `S` or the manager, AIUsage records `disabled_by_user` and discovery will not force it back on. Manually enabling it clears that marker. If a CLI is removed or its session expires, the configured position is retained for later recovery.
 
-Settings in `ai` / `aiusage --menu` can toggle automatic discovery. Demo mode is fully isolated and never runs real discovery. This change adds an Antigravity registry/UI/demo placeholder only; **there is no real Antigravity usage reader and no fabricated real quota**.
+Settings in `ai` / `aiusage --menu` can toggle automatic discovery. Demo mode is fully isolated and never runs real discovery. MiniMax, Qoder, Qoder CN, CodeBuddy, and TraeCode currently detect executable installation only. Until a real reader passes production validation, an installed CLI reports `Usage unsupported` and never produces quota data.
 
 ## Dashboard position
 
@@ -281,7 +280,7 @@ position = "center"
 timezone = "system"
 auto_discover = true
 real_providers = ["codex", "grok"]
-demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+demo_providers = ["codex", "grok", "minimax", "qoder", "codebuddy", "traecode"]
 disabled_providers = []
 ```
 

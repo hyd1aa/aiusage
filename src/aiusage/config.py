@@ -7,7 +7,7 @@ from .timezones import valid_timezone
 
 POSITIONS = ("top-left", "top-center", "top-right", "center", "bottom-left", "bottom-center", "bottom-right")
 THEMES = ("white", "green")
-DEMO_DEFAULT = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+DEMO_DEFAULT = ["codex", "grok", "minimax", "qoder", "codebuddy", "traecode"]
 
 
 @dataclass

@@ -7,7 +7,7 @@ import threading
 from . import __version__, config
 from .cli import main as dashboard_main
 from .diagnostics import collect
-from .providers import REGISTRY
+from .providers import REGISTRY, discover_all
 from .render import _fit, _pad, visible_len
 from .timezones import PRESETS, valid_timezone
 from .updater import REPOSITORY_URL, cached_latest, check_latest, install_release, is_newer
@@ -156,9 +156,13 @@ class Manager:
     def provider_menu(self):
         draft = list(self.cfg.real_providers)
         previous = set(draft)
+        discovery = discover_all(REGISTRY)
         while True:
             for index, (key, adapter) in enumerate(REGISTRY.items(), 1):
-                mark = "x" if key in draft else " "; self.write(f"{index}. [{mark}] {adapter.name}")
+                mark = "x" if key in draft else " "
+                state = discovery[key]
+                detail = DETAIL_ZH.get(state.reason, state.reason) if self.cfg.language == "zh" else state.reason.replace("_", " ").title()
+                self.write(f"{index}. [{mark}] {adapter.name} — {detail}")
             self.write("命令：数字切换，uN/dN 排序，s 保存，0 取消" if self.cfg.language == "zh" else "Commands: number toggle, uN/dN reorder, s save, 0 cancel")
             choice = self.input("> ").strip().lower()
             if choice == "0": return

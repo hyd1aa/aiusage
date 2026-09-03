@@ -13,7 +13,7 @@ from aiusage.render import column_count
 
 class AiUsageTests(unittest.TestCase):
     def test_registry_is_complete(self):
-        self.assertEqual(list(REGISTRY), ["codex", "grok", "antigravity", "claude", "gemini", "deepseek", "kimi", "glm", "zai"])
+        self.assertEqual(list(REGISTRY), ["codex", "grok", "minimax", "qoder", "qodercn", "codebuddy", "traecode", "zcode"])
 
     def test_demo_is_local_and_available(self):
         for key in REGISTRY:
@@ -30,7 +30,12 @@ class AiUsageTests(unittest.TestCase):
         self.assertEqual(sum(line.count("└") for line in lines), 1)
         self.assertLessEqual(len(lines), 24)
         self.assertLessEqual(max(map(len, lines)), 80)
-        self.assertIn("[演示]", "\n".join(lines))
+        rendered = "\n".join(lines)
+        self.assertIn("[演示]", rendered)
+        for name in ("CODEX", "GROK", "MINIMAX", "QODER", "CODEBUDDY", "TRAECODE"):
+            self.assertIn(name, rendered)
+        self.assertNotIn("GEMINI", rendered)
+        self.assertNotIn("ANTIGRAVITY", rendered)
 
     def test_two_providers_preserve_single_column(self):
         self.assertEqual(column_count(2, 80), 1)
@@ -46,13 +51,13 @@ class AiUsageTests(unittest.TestCase):
                 board.key(b"L")
                 board.key(b"P")
                 board.key(b"S")
-                board.cursor = list(REGISTRY).index("glm")
+                board.cursor = list(REGISTRY).index("qodercn")
                 board.key(b" ")
                 board.key(b"\r")
                 loaded = config.load(target)
             self.assertEqual(loaded.language, "zh")
             self.assertEqual(loaded.position, "bottom-left")
-            self.assertIn("glm", loaded.demo_providers)
+            self.assertIn("qodercn", loaded.demo_providers)
 
     def test_white_theme_is_default(self):
         self.assertEqual(config.Config().theme, "white")
@@ -82,7 +87,7 @@ class AiUsageTests(unittest.TestCase):
 
     def test_real_defaults_only_verified_adapters(self):
         self.assertEqual(config.Config().real_providers, ["codex", "grok"])
-        self.assertIsNone(REGISTRY["claude"].reader)
+        self.assertIsNone(REGISTRY["minimax"].reader)
 
     def test_demo_never_calls_real_adapter(self):
         board = Dashboard(True, config.Config())
