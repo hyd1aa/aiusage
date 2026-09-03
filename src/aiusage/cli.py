@@ -174,6 +174,7 @@ def _args(argv=None):
         description="Responsive terminal dashboard for verified AI CLI usage limits.",
     )
     parser.add_argument("--demo", action="store_true", help="use deterministic, isolated demo data")
+    parser.add_argument("--menu", action="store_true", help="open the AIUsage management menu")
     parser.add_argument("--snapshot", action="store_true", help="print one non-interactive dashboard snapshot")
     parser.add_argument("--size", metavar="WIDTHxHEIGHT", default="", help="snapshot dimensions (default: 80x24)")
     parser.add_argument("--version", action="version", version=f"AIUsage {__version__}")
@@ -182,6 +183,9 @@ def _args(argv=None):
 
 def main(argv=None):
     args = _args(argv)
+    if args.menu:
+        from .manager import main as manager_main
+        return manager_main()
     color = not args.snapshot and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
     board = Dashboard(args.demo, color=color)
     if args.snapshot:

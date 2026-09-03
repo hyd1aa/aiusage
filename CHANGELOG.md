@@ -5,15 +5,29 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-03
+
 ### Added
 
-- Added the `ai` management menu for launching real/demo dashboards, shared
-  settings, safe update checks, read-only diagnostics, and confirmed uninstall.
+- Beginner-friendly `ai` management menu.
+- Stable `aiusage --menu` management entry.
+- Settings management, safe update checker/updater, read-only diagnostics, and
+  interactive uninstall.
+- Configurable display timezone with the `Z` selector.
+- `UTC±HH` and `UTC±HH:MM` offsets and system timezone follow mode.
 
-### Changed
+### Improved
 
-- Installation now deploys both `ai` and `aiusage` and prints beginner-friendly
-  next steps while preserving the direct dashboard command.
+- Reset timestamps convert to the selected display timezone with correct date
+  rollover, compact UTC offset labels, and DST-aware system conversion.
+- Installer onboarding and Chinese/English documentation.
+
+### Safety
+
+- Existing third-party `ai` commands are never overwritten.
+- Updates only use the official `hyd1aa/aiusage` repository.
+- Diagnostics never expose credentials.
+- User configuration is preserved by default during update and uninstall.
 
 ## [0.1.2] - 2026-09-03
 

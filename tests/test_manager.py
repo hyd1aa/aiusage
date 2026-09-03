@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import subprocess
 import tempfile
 import tarfile
 import unittest
@@ -10,6 +11,9 @@ from unittest import mock
 from aiusage import __version__, config
 from aiusage.manager import Manager
 from aiusage.updater import ReleaseInfo, _parse, _safe_extract, _source_version, check_latest, is_newer
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class TtyBuffer(io.StringIO):
@@ -117,6 +121,12 @@ class ManagerActionTests(unittest.TestCase):
     def test_ai_entrypoint_exists(self):
         self.assertIn('ai = "aiusage.manager:main"', Path("pyproject.toml").read_text())
 
+    def test_aiusage_menu_calls_same_manager(self):
+        from aiusage import cli
+        with mock.patch("aiusage.manager.main", return_value=17) as manager:
+            self.assertEqual(cli.main(["--menu"]), 17)
+        manager.assert_called_once_with()
+
     def test_dashboard_and_demo_return_to_manager(self):
         for choice, args in (("1", []), ("2", ["--demo"])):
             manager = Manager(config.Config(), input_fn=inputs(choice, "0"), output=io.StringIO())
@@ -171,6 +181,54 @@ class ManagerActionTests(unittest.TestCase):
             with mock.patch.object(config, "config_path", return_value=target), mock.patch("aiusage.manager.subprocess.run"):
                 self.assertTrue(manager.uninstall_menu())
             self.assertFalse(target.parent.exists())
+
+
+class InstallationCompatibilityTests(unittest.TestCase):
+    def run_install(self, prefix, path=None):
+        env = os.environ.copy()
+        env["PREFIX"] = str(prefix)
+        env["PATH"] = str(prefix / "bin") + os.pathsep + (path or env["PATH"])
+        return subprocess.run([str(ROOT / "install.sh")], cwd=ROOT, env=env, text=True, capture_output=True)
+
+    def test_third_party_ai_is_not_overwritten_or_uninstalled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prefix = root / "prefix"
+            binary = prefix / "bin"
+            binary.mkdir(parents=True)
+            foreign = binary / "ai"
+            foreign.write_text("#!/bin/sh\necho third-party-ai\n")
+            foreign.chmod(0o755)
+            before = foreign.read_bytes()
+            installed = self.run_install(prefix)
+            self.assertEqual(installed.returncode, 0, installed.stderr)
+            self.assertEqual(foreign.read_bytes(), before)
+            self.assertIn("aiusage --menu", installed.stdout)
+            env = {**os.environ, "PYTHONPATH": str(prefix / "lib"), "XDG_CONFIG_HOME": str(root / "config")}
+            menu = subprocess.run([str(prefix / "bin" / "aiusage"), "--menu"], input="0\n", text=True, capture_output=True, env=env, timeout=5)
+            self.assertEqual(menu.returncode, 0)
+            self.assertIn("AIUsage", menu.stdout)
+            subprocess.run([str(prefix / "lib" / "aiusage-uninstall.sh")], env={**os.environ, "PREFIX": str(prefix)}, check=True, capture_output=True)
+            self.assertEqual(foreign.read_bytes(), before)
+            self.assertFalse((prefix / "bin" / "aiusage").exists())
+
+    def test_valid_aiusage_ai_shortcut_survives_update(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prefix = Path(directory) / "prefix"
+            first = self.run_install(prefix)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            shortcut = prefix / "bin" / "ai"
+            self.assertIn("aiusage.manager", shortcut.read_text())
+            second = self.run_install(prefix)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            self.assertIn("aiusage.manager", shortcut.read_text())
+
+    def test_readme_commands_match_cli(self):
+        for name in ("README.md", "README_EN.md"):
+            text = (ROOT / name).read_text()
+            self.assertIn("aiusage --menu", text)
+            self.assertIn("aiusage", text)
+            self.assertIn("ai", text)
 
 
 if __name__ == "__main__":

@@ -75,6 +75,12 @@ For a beginner-friendly entry point, run:
 ai
 ```
 
+If another program already owns `ai`, the installer leaves it untouched. Use the guaranteed management entry instead:
+
+```bash
+aiusage --menu
+```
+
 The unified management menu provides launch, demo, settings, update checks, diagnostics, and confirmed uninstall:
 
 ```text
@@ -111,6 +117,12 @@ Management menu:
 
 ```bash
 ai
+```
+
+Guaranteed management entry that does not depend on the short alias:
+
+```bash
+aiusage --menu
 ```
 
 Real mode:

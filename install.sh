@@ -23,9 +23,12 @@ if [ ! -f "$SCRIPT_DIR/src/aiusage/cli.py" ]; then
     exit 1
 fi
 
-if [ -e "$BINDIR/ai" ] && ! grep -q 'aiusage.manager' "$BINDIR/ai" 2>/dev/null; then
-    echo "Error: $BINDIR/ai already exists and is not managed by AIUsage." >&2
-    exit 1
+INSTALL_AI=1
+existing_ai=$(command -v ai 2>/dev/null || true)
+if [ -n "$existing_ai" ] && ! grep -q 'aiusage.manager' "$existing_ai" 2>/dev/null; then
+    INSTALL_AI=0
+elif [ -e "$BINDIR/ai" ] && ! grep -q 'aiusage.manager' "$BINDIR/ai" 2>/dev/null; then
+    INSTALL_AI=0
 fi
 if [ -e "$BINDIR/aiusage" ] && ! grep -q 'aiusage.cli' "$BINDIR/aiusage" 2>/dev/null; then
     echo "Error: $BINDIR/aiusage already exists and is not managed by AIUsage." >&2
@@ -45,22 +48,39 @@ ai_tmp="$BINDIR/.ai.tmp.$$"
 uninstaller_tmp="$LIBDIR/.aiusage-uninstall.tmp.$$"
 trap 'rm -rf -- "$package_tmp"; rm -f -- "$aiusage_tmp" "$ai_tmp" "$uninstaller_tmp"' EXIT HUP INT TERM
 sed "s|@LIBDIR@|$LIBDIR|g" "$SCRIPT_DIR/scripts/aiusage-launcher" > "$aiusage_tmp"
-sed "s|@LIBDIR@|$LIBDIR|g" "$SCRIPT_DIR/scripts/ai-launcher" > "$ai_tmp"
+if [ "$INSTALL_AI" -eq 1 ]; then
+    sed "s|@LIBDIR@|$LIBDIR|g" "$SCRIPT_DIR/scripts/ai-launcher" > "$ai_tmp"
+    chmod 0755 "$ai_tmp"
+fi
 install -m 0755 "$SCRIPT_DIR/uninstall.sh" "$uninstaller_tmp"
-chmod 0755 "$aiusage_tmp" "$ai_tmp"
+chmod 0755 "$aiusage_tmp"
 rm -rf -- "$PACKAGE_DIR"
 mv "$package_tmp" "$PACKAGE_DIR"
 mv -f "$aiusage_tmp" "$BINDIR/aiusage"
-mv -f "$ai_tmp" "$BINDIR/ai"
+if [ "$INSTALL_AI" -eq 1 ]; then
+    mv -f "$ai_tmp" "$BINDIR/ai"
+fi
 mv -f "$uninstaller_tmp" "$UNINSTALLER"
 trap - EXIT HUP INT TERM
 
 echo "✓ AIUsage 安装完成"
 echo
-echo "管理菜单："
-echo "    ai"
+if [ "$INSTALL_AI" -eq 1 ]; then
+    echo "管理菜单："
+    echo "    ai"
+else
+    echo "管理菜单："
+    echo "    aiusage --menu"
+fi
 echo
 echo "直接启动额度看板："
 echo "    aiusage"
 echo
 echo "GitHub: https://github.com/hyd1aa/aiusage"
+if [ "$INSTALL_AI" -eq 0 ]; then
+    echo
+    echo "检测到系统已有 ai 命令，因此没有安装 AIUsage 的 ai 快捷入口。"
+    echo "请使用："
+    echo "    aiusage --menu"
+    echo "进入 AIUsage 管理菜单。"
+fi
