@@ -8,6 +8,17 @@ LIBDIR="$PREFIX/lib"
 PACKAGE_DIR="$LIBDIR/aiusage"
 UNINSTALLER="$LIBDIR/aiusage-uninstall.sh"
 
+ensure_dir() {
+    dir=$1
+    if [ -e "$dir" ] && [ ! -d "$dir" ]; then
+        echo "Error: $dir exists but is not a directory." >&2
+        exit 1
+    fi
+    if [ ! -d "$dir" ]; then
+        install -d -m 0755 "$dir"
+    fi
+}
+
 if ! command -v python3 >/dev/null 2>&1; then
     echo "Error: Python 3.10 or newer is required." >&2
     exit 1
@@ -34,14 +45,24 @@ if [ -e "$BINDIR/aiusage" ] && ! grep -q 'aiusage.cli' "$BINDIR/aiusage" 2>/dev/
     echo "Error: $BINDIR/aiusage already exists and is not managed by AIUsage." >&2
     exit 1
 fi
+if { [ -e "$PACKAGE_DIR" ] || [ -L "$PACKAGE_DIR" ]; } && ! { [ -d "$PACKAGE_DIR" ] && { [ -f "$PACKAGE_DIR/.aiusage-owned" ] || { [ -f "$PACKAGE_DIR/__init__.py" ] && [ -f "$PACKAGE_DIR/cli.py" ] && grep -q 'AI usage limits' "$PACKAGE_DIR/__init__.py" 2>/dev/null && grep -q 'aiusage' "$PACKAGE_DIR/cli.py" 2>/dev/null; }; }; }; then
+    echo "Error: $PACKAGE_DIR already exists and is not managed by AIUsage." >&2
+    exit 1
+fi
+if { [ -e "$UNINSTALLER" ] || [ -L "$UNINSTALLER" ]; } && ! grep -q 'AIUsage program files removed' "$UNINSTALLER" 2>/dev/null; then
+    echo "Error: $UNINSTALLER already exists and is not managed by AIUsage." >&2
+    exit 1
+fi
 
-install -d -m 0755 "$BINDIR" "$LIBDIR"
+ensure_dir "$BINDIR"
+ensure_dir "$LIBDIR"
 package_tmp="$LIBDIR/.aiusage.package.$$"
 rm -rf -- "$package_tmp"
 install -d -m 0755 "$package_tmp"
 for source in "$SCRIPT_DIR"/src/aiusage/*.py; do
     install -m 0644 "$source" "$package_tmp/$(basename "$source")"
 done
+install -m 0644 /dev/null "$package_tmp/.aiusage-owned"
 
 aiusage_tmp="$BINDIR/.aiusage.tmp.$$"
 ai_tmp="$BINDIR/.ai.tmp.$$"
