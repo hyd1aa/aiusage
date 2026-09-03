@@ -201,7 +201,8 @@ Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、�
 移动的是整个自然尺寸看板，不会把框内内容拉散。
 
 ## 时间与时区
-https://github.com/hyd1aa/aiusage/blob/main/AIUsage/utc.jpg
+
+![image](https://github.com/hyd1aa/aiusage/blob/main/AIUsage/utc.jpg?raw=true)</br>
 默认配置 `timezone = "system"`。AIUsage 每次启动和显示时都会使用操作系统当前时区，不会把旧的 system timezone 缓存在配置里；VPS 改变时区后，重新启动即可自动跟随。
 
 按 `Z` 可以选择“跟随系统”、常用 UTC offset，或以 15 分钟步进调整自定义 offset。支持 `UTC-12` 至 `UTC+14`，包括 `UTC+05:30`、`UTC+05:45` 和 `UTC+09:30`。设置会同时作用于系统时间和所有 Reset 时间。
