@@ -7,11 +7,11 @@
 
 [简体中文](README.md) | **English**
 
-A lightweight, responsive terminal dashboard for AI CLI usage and rate limits.
+A lightweight, responsive terminal dashboard for AI CLI usage and rate limits, especially suited to SSH, VPS, and tmux split-pane workflows.
 
 View remaining percentages, usage windows, and reset times from clients such as Codex and Grok in one SSH, VPS, or Linux terminal dashboard.
 
-[Introduction](#introduction) · [Preview](#preview) · [Installation](#installation) · [After installation](#after-installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration)
+[Introduction](#introduction) · [tmux 3-Pane Setup](#tmux-three-pane) · [Preview](#preview) · [Installation](#installation) · [After installation](#after-installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration)
 
 ## Introduction
 
@@ -25,6 +25,24 @@ AIUsage runs directly in the terminal without a web panel or background daemon. 
 - Live system clock and 30-second usage refresh
 - Unicode progress bars and low-flicker partial redraws
 - No telemetry or usage/configuration uploads
+
+<a id="tmux-three-pane"></a>
+
+## 🖥️ Designed for a tmux 3-Pane Workflow
+
+AIUsage was originally designed around a three-pane tmux workflow. A practical layout uses the large left Pane for your primary AI CLI, the upper-right Pane for a second AI CLI, shell, or logs, and the lower-right Pane for AIUsage. This keeps AI CLI limits, remaining percentages, reset times, and the system clock visible while you work.
+
+Its compact single box, natural sizing, responsive layout, and low-flicker refresh make AIUsage a good fit for a small tmux Pane over SSH or on a VPS.
+
+👉 [tmux 3-Pane Beginner Guide](https://github.com/hyd1aa/tmux-3-pane-guide)
+
+<br>
+
+[![tmux 3-pane workflow with AIUsage](docs/images/tmux-3-pane-preview.svg)](https://github.com/hyd1aa/tmux-3-pane-guide)
+
+<br>
+
+tmux is recommended for this workflow, but it is not a requirement. AIUsage also works as a standalone terminal application in a regular SSH, VPS, or Linux terminal.
 
 ## Preview
 

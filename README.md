@@ -7,11 +7,11 @@
 
 **简体中文** | [English](README_EN.md)
 
-一个轻量、响应式的 AI CLI 额度终端看板。
+一个轻量、响应式的 AI CLI 额度终端看板，特别适合 SSH、VPS 和 tmux 分屏工作流。
 
 在 SSH、VPS 和 Linux 终端中统一查看 Codex、Grok 等 AI CLI 的剩余额度、使用窗口和重置时间。
 
-[介绍](#介绍) · [效果预览](#效果预览) · [一键安装](#一键安装) · [安装完成后](#安装完成后) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件)
+[介绍](#介绍) · [tmux 三分屏](#tmux-three-pane) · [效果预览](#效果预览) · [一键安装](#一键安装) · [安装完成后](#安装完成后) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件)
 
 ## 介绍
 
@@ -25,6 +25,24 @@ AIUsage 直接运行在终端中，不需要 Web 面板或后台 daemon。新用
 - 实时系统时间，额度每 30 秒刷新
 - Unicode 进度条与低闪烁局部重绘
 - 无 telemetry，不上传额度或配置
+
+<a id="tmux-three-pane"></a>
+
+## 🖥️ 与 tmux 三分屏搭配
+
+AIUsage 最初就是围绕 tmux 三分屏工作流设计的。一个实用的布局是：左侧大 Pane 运行主要 AI CLI，右上 Pane 放第二个 AI CLI、Shell 或日志，右下 Pane 运行 AIUsage，随时查看 AI CLI 额度、剩余百分比、重置时间和当前系统时间。
+
+紧凑单框、自然尺寸、响应式布局和低闪烁局部刷新，让 AIUsage 很适合放在 SSH / VPS 的 tmux 小 Pane 中。
+
+👉 [tmux 三分屏小白教程](https://github.com/hyd1aa/tmux-3-pane-guide)
+
+<br>
+
+[![tmux 三分屏 + AIUsage 预览](docs/images/tmux-3-pane-preview.svg)](https://github.com/hyd1aa/tmux-3-pane-guide)
+
+<br>
+
+不使用 tmux 也没有问题。AIUsage 仍然可以独立运行在普通 SSH、VPS 或 Linux 终端中。
 
 ## 效果预览
 
