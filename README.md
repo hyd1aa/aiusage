@@ -6,7 +6,7 @@
 
 在 SSH、VPS 和 Linux 终端中统一查看 Codex、Grok 等 AI CLI 的剩余额度、使用窗口和重置时间。
 
-[介绍](#介绍) · [效果预览](#效果预览) · [一键安装](#一键安装) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件)
+[介绍](#介绍) · [效果预览](#效果预览) · [一键安装](#一键安装) · [安装完成后](#安装完成后) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件)
 
 ## 介绍
 
@@ -62,12 +62,56 @@ Demo/UI 已准备 Claude、Gemini、DeepSeek、Kimi、GLM 和 z.ai，但这些 P
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
 sudo ./install.sh
+ai
+```
+
+安装脚本可以重复执行，安装 `ai`、`aiusage` 和 AIUsage package，不会覆盖已有用户配置。
+
+## 安装完成后
+
+普通用户只需记住：
+
+```bash
+ai
+```
+
+它会打开统一管理菜单，可完成启动、Demo、设置、检查更新、环境检查和安全卸载：
+
+```text
+╔══════════════════════════════════════╗
+║               AIUsage                ║
+║          AI CLI 额度终端看板         ║
+╚══════════════════════════════════════╝
+当前版本：v0.1.x
+最新版本：v0.1.x
+GitHub: https://github.com/hyd1aa/aiusage
+----------------------------------------
+1. 启动额度看板
+2. Demo 演示模式
+3. 设置
+4. 检查 / 更新版本
+5. 运行环境检查
+6. 卸载 AIUsage
+0. 退出
+```
+
+熟悉用户可继续直接运行：
+
+```bash
 aiusage
 ```
 
-安装脚本可以重复执行，只安装 AIUsage 到 `/usr/local/bin/aiusage` 和 `/usr/local/lib/aiusage`，不会覆盖已有用户配置。
+`aiusage` 的行为完全不变，仍直接进入真实额度看板。管理菜单和 Dashboard 共用同一份语言、主题、位置、时区及 Provider 配置；退出由管理菜单启动的 Dashboard 后会返回菜单。
+
+版本检查使用短超时与本地缓存，不会阻塞离线使用。更新只接受 `https://github.com/hyd1aa/aiusage` 的正式 Release，明确确认后才下载、校验版本并安装；需要写入 `/usr/local` 时才调用 `sudo`。用户配置不会被更新删除。
 
 ## 快速使用
+
+管理菜单：
+
+```bash
+ai
+```
 
 真实模式：
 
@@ -238,6 +282,8 @@ AIUsage 是非官方社区工具。Codex reader 使用 CLI 的本地 app-server 
 macOS 尚未验证，可能可以运行；Windows 当前不支持。设置 `NO_COLOR` 可关闭彩色前景样式，Unicode 边框和进度条仍保留。
 
 ## 卸载
+
+推荐从 `ai` 选择“卸载 AIUsage”，可明确选择保留或删除用户配置，并需要二次确认。
 
 ```bash
 sudo ./uninstall.sh

@@ -6,7 +6,7 @@ A lightweight, responsive terminal dashboard for AI CLI usage and rate limits.
 
 View remaining percentages, usage windows, and reset times from clients such as Codex and Grok in one SSH, VPS, or Linux terminal dashboard.
 
-[Introduction](#introduction) · [Preview](#preview) · [Installation](#installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration)
+[Introduction](#introduction) · [Preview](#preview) · [Installation](#installation) · [After installation](#after-installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration)
 
 ## Introduction
 
@@ -62,12 +62,56 @@ Claude, Gemini, DeepSeek, Kimi, GLM, and z.ai are UI/demo-ready but **do not hav
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
 sudo ./install.sh
+ai
+```
+
+The idempotent installer deploys `ai`, `aiusage`, and the AIUsage package. Existing user configuration is preserved.
+
+## After installation
+
+For a beginner-friendly entry point, run:
+
+```bash
+ai
+```
+
+The unified management menu provides launch, demo, settings, update checks, diagnostics, and confirmed uninstall:
+
+```text
++--------------------------------------+
+|               AIUsage                |
+|    AI CLI usage terminal dashboard   |
++--------------------------------------+
+Current version: v0.1.x
+Latest version: v0.1.x
+GitHub: https://github.com/hyd1aa/aiusage
+----------------------------------------
+1. Launch dashboard
+2. Demo mode
+3. Settings
+4. Check / Update
+5. Diagnostics
+6. Uninstall AIUsage
+0. Exit
+```
+
+Experienced users can continue to run:
+
+```bash
 aiusage
 ```
 
-The idempotent installer writes only `/usr/local/bin/aiusage` and `/usr/local/lib/aiusage`. Existing user configuration is preserved.
+`aiusage` remains unchanged and opens the real dashboard directly. The manager and dashboard share one language, theme, position, timezone, and Provider configuration. A dashboard launched from `ai` returns to the menu when it exits.
+
+Latest-version checks use a short timeout and local cache, so offline use remains responsive. Updates accept stable releases only from `https://github.com/hyd1aa/aiusage`, require explicit confirmation, verify the installed version, and invoke `sudo` only when `/usr/local` needs it. Updates preserve user configuration.
 
 ## Quick start
+
+Management menu:
+
+```bash
+ai
+```
 
 Real mode:
 
@@ -239,6 +283,8 @@ AIUsage is an unofficial community utility. The Codex reader uses the CLI's loca
 macOS is untested and may work. Windows is not currently supported. Set `NO_COLOR` to disable colored foreground styles while retaining structural Unicode borders and progress bars.
 
 ## Uninstall
+
+The recommended path is option 6 in `ai`, where you explicitly choose whether to preserve or remove user configuration and confirm the action a second time.
 
 ```bash
 sudo ./uninstall.sh

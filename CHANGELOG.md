@@ -5,6 +5,16 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Added the `ai` management menu for launching real/demo dashboards, shared
+  settings, safe update checks, read-only diagnostics, and confirmed uninstall.
+
+### Changed
+
+- Installation now deploys both `ai` and `aiusage` and prints beginner-friendly
+  next steps while preserving the direct dashboard command.
+
 ## [0.1.2] - 2026-09-03
 
 ### Added

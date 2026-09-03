@@ -26,6 +26,7 @@ classifiers = [
 dev = []
 
 [project.scripts]
+ai = "aiusage.manager:main"
 aiusage = "aiusage.cli:main"
 
 [tool.setuptools.dynamic]
