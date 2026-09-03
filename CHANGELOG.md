@@ -5,15 +5,26 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-03
+
 ### Added
 
-- Added a persistent `timezone` preference with live system-zone following,
-  fixed UTC offsets, quarter-hour custom offsets, and the `Z` selector.
+- Configurable display timezone.
+- `Z` shortcut for timezone selection.
+- `UTC±HH` and `UTC±HH:MM` offset support.
+- System timezone auto-follow mode.
 
 ### Changed
 
-- Reset and system timestamps now use one selected display timezone and show
-  unambiguous numeric UTC offsets instead of timezone abbreviations.
+- Reset timestamps now convert across dates correctly.
+- Compact UTC offset labels replace ambiguous CST/EST/EDT and IANA names.
+- System timezone conversion is DST-aware.
+- Expanded Chinese and English timezone documentation.
+
+### Tests
+
+- Expanded regression coverage to 53 tests.
+- Verified the Python 3.10–3.13 CI matrix.
 
 ## [0.1.1] - 2026-09-03
 
