@@ -13,7 +13,7 @@ from aiusage.render import column_count
 
 class AiUsageTests(unittest.TestCase):
     def test_registry_is_complete(self):
-        self.assertEqual(list(REGISTRY), ["codex", "grok", "claude", "gemini", "deepseek", "kimi", "glm", "zai"])
+        self.assertEqual(list(REGISTRY), ["codex", "grok", "antigravity", "claude", "gemini", "deepseek", "kimi", "glm", "zai"])
 
     def test_demo_is_local_and_available(self):
         for key in REGISTRY:

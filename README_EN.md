@@ -151,6 +151,7 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | Supported |
 | Grok | ✅ | ✅ | Supported |
+| Antigravity | ❌ | ✅ | Registry/UI/demo only; no real reader |
 | Claude | ❌ | ✅ | UI/demo only |
 | Gemini | ❌ | ✅ | UI/demo only |
 | DeepSeek | ❌ | ✅ | UI/demo only |
@@ -212,6 +213,16 @@ Every layout uses one outer box. The title is centered against the actual box wi
 
 Press `S` to enable, disable, or reorder providers. Real mode defaults to Codex and Grok; demo mode defaults to six providers. Real and demo selections are saved separately, so demo configuration never becomes real usage.
 
+## Automatic Provider discovery
+
+The default is `auto_discover = true`. AIUsage performs one lightweight discovery pass at startup and scans again about every 300 seconds. Pressing `R` runs discovery immediately and then refreshes real usage for enabled providers. The regular 30-second usage refresh stays separate and does not rescan the complete registry.
+
+Discovery checks installation, availability of a real reader, local authentication/session readiness, and availability of a reliable usage source. A new Provider is appended to the existing order only when its real reader is implemented and ready. “Installed” does not mean “supported”; unsupported and needs-login states never produce demo or fabricated usage.
+
+When a user explicitly disables a Provider through `S` or the manager, AIUsage records `disabled_by_user` and discovery will not force it back on. Manually enabling it clears that marker. If a CLI is removed or its session expires, the configured position is retained for later recovery.
+
+Settings in `ai` / `aiusage --menu` can toggle automatic discovery. Demo mode is fully isolated and never runs real discovery. This change adds an Antigravity registry/UI/demo placeholder only; **there is no real Antigravity usage reader and no fabricated real quota**.
+
 ## Dashboard position
 
 Press `P` to cycle and save:
@@ -268,11 +279,13 @@ language = "zh"
 theme = "white"
 position = "center"
 timezone = "system"
+auto_discover = true
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+disabled_providers = []
 ```
 
-The file stores only language, theme, position, display timezone, enabled providers, and ordering—never tokens, cookies, accounts, IP addresses, hostnames, or usage snapshots. Older files without `timezone` automatically use `system`; no migration is required. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back. See [`config.example.toml`](config.example.toml).
+The file stores only language, theme, position, display timezone, the discovery switch, enabled ordering, and explicitly disabled Providers—never tokens, cookies, accounts, IP addresses, hostnames, or usage snapshots. Older files without `timezone` or `auto_discover` automatically use `system` and `true`; no migration is required. Writes are atomic with user-only permissions. Missing, unreadable, or damaged configuration safely falls back. See [`config.example.toml`](config.example.toml).
 
 ## Privacy and security
 

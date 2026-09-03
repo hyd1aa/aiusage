@@ -4,6 +4,7 @@ import os
 import select
 import shutil
 import subprocess
+import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -13,6 +14,16 @@ from .models import Availability, ProviderUsage, RateLimitWindow
 
 CODEX_TIMEOUT = 8
 GROK_LOG = os.path.expanduser("~/.grok/logs/unified.jsonl")
+DISCOVERY_TIMEOUT = 2.0
+
+
+@dataclass(frozen=True)
+class DiscoveryResult:
+    installed: bool
+    ready: bool
+    usage_supported: bool
+    usable: bool
+    reason: str
 
 
 def _label(minutes, fallback="Limit"):
@@ -130,6 +141,17 @@ class ProviderAdapter:
     name: str
     reader: Callable[[], tuple[RateLimitWindow, ...]] | None
     installed: Callable[[], bool]
+    readiness: Callable[[], bool] | None = None
+
+    def discover(self) -> DiscoveryResult:
+        installed = bool(self.installed())
+        supported = self.reader is not None
+        if not installed:
+            return DiscoveryResult(False, False, supported, False, "not_installed")
+        if not supported:
+            return DiscoveryResult(True, False, False, False, "unsupported")
+        ready = bool(self.readiness()) if self.readiness else False
+        return DiscoveryResult(True, ready, True, ready, "ready" if ready else "needs_login")
 
     def read(self) -> ProviderUsage:
         if not self.installed():
@@ -156,9 +178,58 @@ def _command(*names):
     return lambda: any(shutil.which(name) for name in names)
 
 
+def _codex_ready():
+    return bool(os.environ.get("CODEX_API_KEY")) or os.path.isfile(os.path.expanduser("~/.codex/auth.json"))
+
+
+def _grok_ready():
+    return os.path.isfile(GROK_LOG) and os.access(GROK_LOG, os.R_OK)
+
+
+def bounded_discover(adapter: ProviderAdapter, timeout=DISCOVERY_TIMEOUT) -> DiscoveryResult:
+    result = []
+
+    def run():
+        try:
+            result.append(adapter.discover())
+        except Exception:
+            result.append(DiscoveryResult(False, False, adapter.reader is not None, False, "unavailable"))
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(timeout)
+    if thread.is_alive():
+        return DiscoveryResult(False, False, adapter.reader is not None, False, "timeout")
+    if not result or not isinstance(result[0], DiscoveryResult):
+        return DiscoveryResult(False, False, adapter.reader is not None, False, "malformed")
+    return result[0]
+
+
+def discover_all(registry=None, timeout=DISCOVERY_TIMEOUT):
+    registry = REGISTRY if registry is None else registry
+    results = {}
+    lock = threading.Lock()
+
+    def run(key, adapter):
+        value = bounded_discover(adapter, timeout)
+        with lock:
+            results[key] = value
+
+    threads = [threading.Thread(target=run, args=(key, adapter), daemon=True) for key, adapter in registry.items()]
+    for thread in threads:
+        thread.start()
+    deadline = time.monotonic() + timeout
+    for thread in threads:
+        thread.join(max(0, deadline - time.monotonic()))
+    for key, adapter in registry.items():
+        results.setdefault(key, DiscoveryResult(False, False, adapter.reader is not None, False, "timeout"))
+    return results
+
+
 REGISTRY = OrderedDict((adapter.key, adapter) for adapter in (
-    ProviderAdapter("codex", "Codex", read_codex, _command("codex")),
-    ProviderAdapter("grok", "Grok", read_grok, _command("grok")),
+    ProviderAdapter("codex", "Codex", read_codex, _command("codex"), _codex_ready),
+    ProviderAdapter("grok", "Grok", read_grok, _command("grok"), _grok_ready),
+    ProviderAdapter("antigravity", "Antigravity", None, _command("antigravity")),
     ProviderAdapter("claude", "Claude", None, _command("claude")),
     ProviderAdapter("gemini", "Gemini", None, _command("gemini")),
     ProviderAdapter("deepseek", "DeepSeek", None, _command("deepseek")),

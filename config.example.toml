@@ -2,5 +2,7 @@ language = "zh"
 theme = "white"
 position = "center"
 timezone = "system"
+auto_discover = true
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+disabled_providers = []

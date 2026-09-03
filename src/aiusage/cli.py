@@ -12,11 +12,14 @@ import tty
 from . import __version__, config
 from .demo import demo_usage
 from .models import Availability, ProviderUsage
-from .providers import REGISTRY
+from .providers import REGISTRY, discover_all
+from .i18n import tr
 from .render import dashboard, selector, timezone_selector
 from .timezones import MINUTES_MAX, MINUTES_MIN, PRESETS, offset_minutes, offset_setting
 
 REFRESH_SECONDS = 30
+DISCOVERY_SECONDS = 300
+NOTICE_SECONDS = 5
 
 
 class Dashboard:
@@ -34,6 +37,9 @@ class Dashboard:
         self.timezone_selecting = False
         self.timezone_cursor = 0
         self.timezone_options = []
+        self.discovery_states = {}
+        self.notice = None
+        self.notice_until = 0.0
 
     @property
     def enabled(self):
@@ -63,9 +69,33 @@ class Dashboard:
         if success:
             self.updated = time_now()
 
+    def discover(self):
+        if self.demo or not self.cfg.auto_discover:
+            return []
+        discovered = []
+        for key, state in discover_all(REGISTRY).items():
+            adapter = REGISTRY[key]
+            if state.reason in {"timeout", "malformed", "unavailable"} and key in self.discovery_states:
+                state = self.discovery_states[key]
+            self.discovery_states[key] = state
+            if state.usable and key not in self.enabled and key not in self.cfg.disabled_providers:
+                self.enabled.append(key)
+                discovered.append(adapter.name)
+        if discovered:
+            config.save(self.cfg)
+            separator = "：" if self.cfg.language == "zh" else ": "
+            self.notice = f"{tr(self.cfg.language, 'discovered')}{separator}{', '.join(discovered)}"
+            self.notice_until = time.monotonic() + NOTICE_SECONDS
+        return discovered
+
     def worker(self):
+        self.discover()
         self.refresh()
+        next_discovery = time.monotonic() + DISCOVERY_SECONDS
         while not self.stop.wait(REFRESH_SECONDS):
+            if time.monotonic() >= next_discovery:
+                self.discover()
+                next_discovery = time.monotonic() + DISCOVERY_SECONDS
             self.refresh()
 
     def frame(self, width=None, height=None):
@@ -77,7 +107,8 @@ class Dashboard:
             if self.timezone_selecting:
                 return timezone_selector(width, height, self.timezone_options, self.timezone_cursor, self.cfg.language, self.cfg.theme, self.color)
             states = [self.states.get(key, ProviderUsage(key, REGISTRY[key].name, Availability.UNAVAILABLE)) for key in self.enabled]
-            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo, self.cfg.theme, self.color, self.cfg.timezone)
+            notice = self.notice if time.monotonic() < self.notice_until else None
+            return dashboard(width, height, states, self.updated, self.cfg.language, self.cfg.position, self.demo, self.cfg.theme, self.color, self.cfg.timezone, notice)
 
     def key(self, key):
         if self.timezone_selecting:
@@ -100,7 +131,13 @@ class Dashboard:
             if key in (b"\x1b",):
                 self.selecting = False
             elif key in (b"\r", b"\n"):
+                previous = set(self.enabled)
+                selected = set(self.draft)
                 self.enabled = list(self.draft)
+                self.cfg.disabled_providers = list(dict.fromkeys(
+                    [key for key in self.cfg.disabled_providers if key not in selected]
+                    + [key for key in previous - selected]
+                ))
                 config.save(self.cfg)
                 self.selecting = False
                 self.refresh()
@@ -145,6 +182,7 @@ class Dashboard:
             self.timezone_cursor = self.timezone_options.index(self.cfg.timezone) if self.cfg.timezone in self.timezone_options else len(self.timezone_options) - 1
             self.timezone_selecting = True
         elif key in (b"r", b"R"):
+            self.discover()
             self.refresh()
         return False
 
@@ -189,6 +227,7 @@ def main(argv=None):
     color = not args.snapshot and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
     board = Dashboard(args.demo, color=color)
     if args.snapshot:
+        board.discover()
         board.refresh()
         try:
             width, height = (map(int, args.size.lower().split("x"))) if args.size else (80, 24)

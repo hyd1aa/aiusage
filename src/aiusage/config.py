@@ -16,8 +16,10 @@ class Config:
     theme: str = "white"
     position: str = "center"
     timezone: str = "system"
+    auto_discover: bool = True
     real_providers: list[str] = field(default_factory=lambda: ["codex", "grok"])
     demo_providers: list[str] = field(default_factory=lambda: list(DEMO_DEFAULT))
+    disabled_providers: list[str] = field(default_factory=list)
 
 
 def config_path() -> Path:
@@ -29,6 +31,11 @@ def _array(value):
     if not value.startswith("[") or not value.endswith("]"):
         return []
     return [part.strip().strip('"').strip("'") for part in value[1:-1].split(",") if part.strip()]
+
+
+def _boolean(value, default=True):
+    normalized = value.strip().lower()
+    return True if normalized == "true" else False if normalized == "false" else default
 
 
 def load(path: Path | None = None) -> Config:
@@ -48,7 +55,8 @@ def load(path: Path | None = None) -> Config:
     cfg.theme = values.get("theme", '"white"').strip('"')
     cfg.position = values.get("position", '"center"').strip('"')
     cfg.timezone = values.get("timezone", '"system"').strip('"')
-    for attr in ("real_providers", "demo_providers"):
+    cfg.auto_discover = _boolean(values.get("auto_discover", "true"))
+    for attr in ("real_providers", "demo_providers", "disabled_providers"):
         if attr in values:
             setattr(cfg, attr, _array(values[attr]))
     if cfg.language not in ("en", "zh"):
@@ -61,6 +69,9 @@ def load(path: Path | None = None) -> Config:
         cfg.timezone = "system"
     cfg.real_providers = _valid(cfg.real_providers) or ["codex", "grok"]
     cfg.demo_providers = _valid(cfg.demo_providers) or list(DEMO_DEFAULT)
+    cfg.disabled_providers = [key for key in _valid(cfg.disabled_providers) if key not in cfg.real_providers]
+    if "real_providers" in values and "disabled_providers" not in values:
+        cfg.disabled_providers.extend(key for key in ("codex", "grok") if key not in cfg.real_providers)
     return cfg
 
 
@@ -77,8 +88,10 @@ def save(cfg: Config, path: Path | None = None) -> bool:
         f'theme = "{cfg.theme}"\n'
         f'position = "{cfg.position}"\n'
         f'timezone = "{cfg.timezone}"\n'
+        f'auto_discover = {str(cfg.auto_discover).lower()}\n'
         f'real_providers = [{quoted(_valid(cfg.real_providers))}]\n'
         f'demo_providers = [{quoted(_valid(cfg.demo_providers))}]\n'
+        f'disabled_providers = [{quoted(_valid(cfg.disabled_providers))}]\n'
     )
     temporary = target.with_suffix(".tmp")
     try:

@@ -34,7 +34,7 @@ TEXT = {
 
 POSITION_ZH = {"top-left": "左上", "top-center": "顶部居中", "top-right": "右上", "center": "居中", "bottom-left": "左下", "bottom-center": "底部居中", "bottom-right": "右下"}
 DIAGNOSTIC_ZH = {"AIUsage": "AIUsage", "Python": "Python", "Terminal": "终端", "Config": "配置文件", "Codex": "Codex", "Codex usage": "Codex 额度", "Grok": "Grok", "Grok usage": "Grok 额度", "System timezone": "系统时区", "Display timezone": "显示时区", "GitHub": "GitHub 连接"}
-DETAIL_ZH = {"installed": "已安装", "not installed": "未安装", "readable": "可读取", "unavailable": "不可用", "available": "正常", "unknown": "未知"}
+DETAIL_ZH = {"installed": "已安装", "not installed": "未安装", "not_installed": "未安装", "readable": "可读取", "unavailable": "不可用", "available": "正常", "unknown": "未知", "ready": "已就绪", "needs_login": "需要登录", "unsupported": "不支持", "disabled_by_user": "用户已禁用", "timeout": "探测超时", "malformed": "探测结果异常"}
 
 
 class Manager:
@@ -121,7 +121,8 @@ class Manager:
             zone = "跟随系统" if self.cfg.timezone == "system" and self.cfg.language == "zh" else "System" if self.cfg.timezone == "system" else self.cfg.timezone
             position = POSITION_ZH[self.cfg.position] if self.cfg.language == "zh" else self.cfg.position
             providers = ", ".join(REGISTRY[key].name for key in self.cfg.real_providers)
-            labels = [f"1. {'语言' if self.cfg.language == 'zh' else 'Language'}: {lang}", f"2. {'主题' if self.cfg.language == 'zh' else 'Theme'}: {self.cfg.theme.title()}", f"3. {'看板位置' if self.cfg.language == 'zh' else 'Position'}: {position}", f"4. {'显示时区' if self.cfg.language == 'zh' else 'Display timezone'}: {zone}", f"5. Provider: {providers}", f"6. {'恢复默认设置' if self.cfg.language == 'zh' else 'Restore defaults'}", f"0. {'返回' if self.cfg.language == 'zh' else 'Back'}"]
+            discovery = "开启" if self.cfg.auto_discover and self.cfg.language == "zh" else "关闭" if self.cfg.language == "zh" else "On" if self.cfg.auto_discover else "Off"
+            labels = [f"1. {'语言' if self.cfg.language == 'zh' else 'Language'}: {lang}", f"2. {'主题' if self.cfg.language == 'zh' else 'Theme'}: {self.cfg.theme.title()}", f"3. {'看板位置' if self.cfg.language == 'zh' else 'Position'}: {position}", f"4. {'显示时区' if self.cfg.language == 'zh' else 'Display timezone'}: {zone}", f"5. Provider: {providers}", f"6. {'自动发现 Provider' if self.cfg.language == 'zh' else 'Auto-discover providers'}: {discovery}", f"7. {'恢复默认设置' if self.cfg.language == 'zh' else 'Restore defaults'}", f"0. {'返回' if self.cfg.language == 'zh' else 'Back'}"]
             self.write("AIUsage 设置" if self.cfg.language == "zh" else "AIUsage Settings")
             for line in labels: self.write(line)
             choice = self.input(self.text["prompt"]).strip()
@@ -132,7 +133,8 @@ class Manager:
                 index = config.POSITIONS.index(self.cfg.position); self.cfg.position = config.POSITIONS[(index + 1) % len(config.POSITIONS)]
             elif choice == "4": self.timezone_menu()
             elif choice == "5": self.provider_menu()
-            elif choice == "6":
+            elif choice == "6": self.cfg.auto_discover = not self.cfg.auto_discover
+            elif choice == "7":
                 if self._yes("恢复默认设置？ [y/N]: " if self.cfg.language == "zh" else "Restore defaults? [y/N]: "): self.cfg = config.Config()
             else: continue
             config.save(self.cfg)
@@ -153,13 +155,22 @@ class Manager:
 
     def provider_menu(self):
         draft = list(self.cfg.real_providers)
+        previous = set(draft)
         while True:
             for index, (key, adapter) in enumerate(REGISTRY.items(), 1):
                 mark = "x" if key in draft else " "; self.write(f"{index}. [{mark}] {adapter.name}")
             self.write("命令：数字切换，uN/dN 排序，s 保存，0 取消" if self.cfg.language == "zh" else "Commands: number toggle, uN/dN reorder, s save, 0 cancel")
             choice = self.input("> ").strip().lower()
             if choice == "0": return
-            if choice == "s": self.cfg.real_providers = draft; config.save(self.cfg); return
+            if choice == "s":
+                selected = set(draft)
+                self.cfg.real_providers = draft
+                self.cfg.disabled_providers = list(dict.fromkeys(
+                    [key for key in self.cfg.disabled_providers if key not in selected]
+                    + [key for key in previous - selected]
+                ))
+                config.save(self.cfg)
+                return
             try:
                 direction = choice[0] if choice[0] in "ud" else ""; number = int(choice[1:] if direction else choice); key = list(REGISTRY)[number - 1]
             except (ValueError, IndexError): continue

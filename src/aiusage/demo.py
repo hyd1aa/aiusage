@@ -9,6 +9,7 @@ from .providers import REGISTRY
 VALUES = {
     "codex": (("5h", 83, 2.2), ("Week", 61, 74)),
     "grok": (("Cycle", 72, 51),),
+    "antigravity": (("Daily", 64, 10),),
     "claude": (("5h", 48, 3.5),),
     "gemini": (("Daily", 91, 8),),
     "deepseek": (("Daily", 66, 11),),

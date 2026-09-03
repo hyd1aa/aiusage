@@ -8,6 +8,7 @@ TEXT = {
         "help_compact": "T Theme L Lang P Pos S Prov Z Zone R Refresh Q Exit",
         "select_help": "↑/↓ Select  Space Toggle  U/D Reorder  Enter Save  Esc Cancel",
         "timezone_help": "↑/↓ Select  ←/→ Adjust custom  Enter Save  Esc Cancel",
+        "discovered": "New provider discovered",
     },
     "zh": {
         "demo": "演示", "system": "系统时间", "updated": "数据更新", "reset": "重置",
@@ -18,6 +19,7 @@ TEXT = {
         "help_compact": "T主题 L语言 P位置 S服务 Z时区 R刷新 Q退出",
         "select_help": "↑/↓ 选择  空格 启用  U/D 排序  Enter 保存  Esc 取消",
         "timezone_help": "↑/↓ 选择  ←/→ 调整自定义  Enter 保存  Esc 取消",
+        "discovered": "已发现新服务",
     },
 }
 

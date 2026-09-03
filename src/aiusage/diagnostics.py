@@ -3,7 +3,7 @@ import locale
 import platform
 
 from . import __version__
-from .providers import REGISTRY
+from .providers import REGISTRY, discover_all
 from .timezones import convert, offset_label
 
 
@@ -14,11 +14,15 @@ def collect(cfg, github_ok=None):
         ("Terminal", bool((locale.getpreferredencoding(False) or "").lower().replace("-", "").startswith("utf8")), locale.getpreferredencoding(False)),
         ("Config", True, "readable"),
     ]
+    discovery = discover_all(REGISTRY)
+    for key, adapter in REGISTRY.items():
+        state = discovery[key]
+        disabled = key in cfg.disabled_providers
+        rows.append((adapter.name, state.usable and not disabled, "disabled_by_user" if disabled else state.reason))
     for key in ("codex", "grok"):
         adapter = REGISTRY[key]
-        installed = adapter.installed()
-        rows.append((adapter.name, installed, "installed" if installed else "not installed"))
-        state = adapter.read() if installed else None
+        discovered = discovery[key]
+        state = adapter.read() if discovered.usable else None
         readable = bool(state and state.windows)
         rows.append((f"{adapter.name} usage", readable, "readable" if readable else "unavailable"))
     instant = dt.datetime.now(dt.timezone.utc)

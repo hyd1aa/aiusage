@@ -148,6 +148,7 @@ def dashboard(
     theme="white",
     color=False,
     timezone="system",
+    notice=None,
 ):
     width, height = max(1, width), max(1, height)
     title = f"AI USAGE [{tr(language, 'demo')}]" if demo else "AI USAGE"
@@ -192,8 +193,9 @@ def dashboard(
             content_kinds.append("normal")
 
     chosen_help = help_text if visible_len(help_text) <= content_width - 1 else compact_help
-    content.extend(["", " " + system_text(language, timezone), " " + update_text, "", " " + chosen_help, ""])
-    content_kinds.extend(["normal", "normal", "muted", "normal", "muted", "normal"])
+    status_lines = ([" " + notice] if notice else [])
+    content.extend(["", " " + system_text(language, timezone), " " + update_text] + status_lines + ["", " " + chosen_help, ""])
+    content_kinds.extend(["normal", "normal", "muted"] + (["strong"] if notice else []) + ["normal", "muted", "normal"])
 
     max_content_lines = max(0, height - 2)
     if len(content) > max_content_lines:

@@ -5,6 +5,20 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Added a bounded Provider discovery contract with installation, readiness,
+  usage-support, usability, and reason states.
+- Added startup discovery, five-minute periodic discovery, `R` discovery, and
+  persistent automatic discovery controls.
+- Added an Antigravity registry/UI/demo placeholder without a real usage reader.
+
+### Changed
+
+- Explicitly disabled Providers remain hidden across future discovery passes,
+  while removed CLIs and expired sessions retain their configured order.
+- Diagnostics now report sanitized discovery states for every Provider.
+
 ## [0.2.0] - 2026-09-03
 
 ### Added

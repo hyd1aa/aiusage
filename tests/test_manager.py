@@ -10,6 +10,7 @@ from unittest import mock
 
 from aiusage import __version__, config
 from aiusage.manager import Manager
+from aiusage.providers import REGISTRY
 from aiusage.updater import ReleaseInfo, _parse, _safe_extract, _source_version, check_latest, is_newer
 
 
@@ -145,13 +146,22 @@ class ManagerActionTests(unittest.TestCase):
             self.assertEqual(loaded.timezone, "UTC+08")
 
     def test_provider_save_and_cancel(self):
-        manager = Manager(config.Config(), input_fn=inputs("3", "0"), output=io.StringIO())
+        claude_number = str(list(REGISTRY).index("claude") + 1)
+        manager = Manager(config.Config(), input_fn=inputs(claude_number, "0"), output=io.StringIO())
         manager.provider_menu()
         self.assertEqual(manager.cfg.real_providers, ["codex", "grok"])
         with tempfile.TemporaryDirectory() as directory, mock.patch.object(config, "config_path", return_value=Path(directory) / "config.toml"):
-            manager.input = inputs("3", "s")
+            manager.input = inputs(claude_number, "s")
             manager.provider_menu()
             self.assertIn("claude", manager.cfg.real_providers)
+
+    def test_manager_provider_disable_is_respected_by_discovery(self):
+        grok_number = str(list(REGISTRY).index("grok") + 1)
+        manager = Manager(config.Config(), input_fn=inputs(grok_number, "s"), output=io.StringIO())
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(config, "config_path", return_value=Path(directory) / "config.toml"):
+            manager.provider_menu()
+        self.assertNotIn("grok", manager.cfg.real_providers)
+        self.assertIn("grok", manager.cfg.disabled_providers)
 
     def test_diagnostics_output_does_not_include_secrets(self):
         output = io.StringIO()

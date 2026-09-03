@@ -151,6 +151,7 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | 已支持 |
 | Grok | ✅ | ✅ | 已支持 |
+| Antigravity | ❌ | ✅ | Registry / UI / Demo，暂无真实 reader |
 | Claude | ❌ | ✅ | 仅 UI / Demo |
 | Gemini | ❌ | ✅ | 仅 UI / Demo |
 | DeepSeek | ❌ | ✅ | 仅 UI / Demo |
@@ -212,6 +213,16 @@ Provider 管理中可使用方向键或 `J` / `K` 选择，`Space` 启用或禁�
 
 按 `S` 打开 Provider 管理，可启用、禁用和调整顺序。Real mode 默认启用 Codex、Grok；Demo mode 默认展示 6 个 Provider。选择分别保存，不会把 Demo 配置混入真实 reader。
 
+## 自动发现 Provider
+
+默认 `auto_discover = true`。AIUsage 会在启动时立即执行一次轻量 discovery，运行中每约 300 秒重新扫描；按 `R` 会立即执行 discovery，然后刷新已启用 Provider 的真实额度。30 秒 usage refresh 保持独立，不会每次都完整扫描 registry。
+
+Discovery 会分层检查 CLI 是否安装、adapter 是否有真实 reader、本地登录/session 是否已就绪，以及 usage source 是否可读。只有已经实现可靠真实 reader 且满足 readiness 的新 Provider，才会自动追加到现有顺序末尾并显示真实额度。“已安装”不等于“已支持”，unsupported 或 needs login 状态绝不会产生 Demo/虚假额度。
+
+如果用户通过 `S` 或管理菜单明确关闭某个 Provider，AIUsage 会记录 `disabled_by_user`，后续 discovery 不会强制重新启用；手动再次开启即可清除该标记。CLI 被卸载或 session 失效时也会保留原顺序，方便恢复后继续使用。
+
+`ai` / `aiusage --menu` 的 Settings 可开关自动发现。Demo mode 完全离线，不执行真实 discovery。本次仅为 Antigravity 增加 registry/UI/Demo 占位，**没有实现或伪造 Antigravity 真实额度 reader**。
+
 ## 看板位置
 
 按 `P` 在以下位置循环切换，并保存选择：
@@ -267,11 +278,13 @@ language = "zh"
 theme = "white"
 position = "center"
 timezone = "system"
+auto_discover = true
 real_providers = ["codex", "grok"]
 demo_providers = ["codex", "grok", "deepseek", "claude", "gemini", "kimi"]
+disabled_providers = []
 ```
 
-这里只保存语言、主题、位置、显示时区、启用的 Provider 和排序，不保存 token、cookie、账号、IP、hostname 或额度快照。旧配置没有 `timezone` 时会自动按 `system` 处理，无需迁移。文件采用仅当前用户可读写权限并原子写入；配置缺失、损坏或不可读时会安全回退。完整示例见 [`config.example.toml`](config.example.toml)。
+这里只保存语言、主题、位置、显示时区、自动发现开关、启用顺序和用户明确禁用的 Provider，不保存 token、cookie、账号、IP、hostname 或额度快照。旧配置没有 `timezone` 或 `auto_discover` 时分别按 `system`、`true` 处理，无需迁移。文件采用仅当前用户可读写权限并原子写入；配置缺失、损坏或不可读时会安全回退。完整示例见 [`config.example.toml`](config.example.toml)。
 
 ## 隐私与安全
 
