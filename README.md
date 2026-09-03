@@ -61,7 +61,7 @@ AIUsage 最初就是围绕 tmux 三分屏工作流设计的。一个实用的布
 
 <br>
 
-![AIUsage Demo 演示模式](AIUsage/demo.jpg)
+![AIUsage Demo 演示模式](AIUsage/cn.jpg)
 
 <br>
 
