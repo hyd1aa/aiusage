@@ -30,7 +30,11 @@ AIUsage runs directly in the terminal without a web panel or background daemon. 
 
 ### Real mode
 
+<br>
+
 ![AIUsage real mode](AIUsage/zhenshi.jpg)
+
+<br>
 
 `aiusage` displays real usage only when a reliable local source exists. This is an English UI example; percentages and times come from your own installed clients:
 
@@ -59,7 +63,11 @@ There is one outer box; providers do not get individual boxes. The box takes its
 
 ### Demo mode
 
+<br>
+
 ![AIUsage demo mode](AIUsage/demo.jpg)
+
+<br>
 
 `aiusage --demo` uses deterministic fixtures for UI previews, README captures, responsive layout tests, and i18n checks. The dashboard is prominently marked **`[DEMO]`**.
 
@@ -122,7 +130,11 @@ Latest-version checks use a short timeout and local cache, so offline use remain
 
 ## Quick start
 
+<br>
+
 ![AIUsage management menu](AIUsage/jiaoben.jpg)
+
+<br>
 
 Management menu:
 
@@ -174,8 +186,15 @@ aiusage --demo --snapshot --size 80x24
 
 ## Themes
 
+<br>
+
 ![AIUsage Green theme](AIUsage/Green.jpg)
+
+<br>
+
 ![AIUsage White theme](AIUsage/White.jpg)
+
+<br>
 
 New users start with the **White** theme. Press `T` while AIUsage is running to switch:
 
@@ -193,8 +212,15 @@ AIUsage always preserves the user's native terminal background. It never sets wh
 
 ## Language switching
 
+<br>
+
 ![AIUsage Chinese interface](AIUsage/cn.jpg)
+
+<br>
+
 ![AIUsage English interface](AIUsage/us.jpg)
+
+<br>
 
 The default language for new users without a configuration file is Chinese. Press `L` to switch to English and save that preference.
 
@@ -228,7 +254,11 @@ Every layout uses one outer box. The title is centered against the actual box wi
 
 ## Provider management
 
+<br>
+
 ![AIUsage Provider management](AIUsage/s.jpg)
+
+<br>
 
 Press `S` to enable, disable, or reorder providers. Real mode defaults to Codex and Grok; demo mode defaults to six providers. Real and demo selections are saved separately, so demo configuration never becomes real usage.
 
@@ -244,8 +274,15 @@ Settings in `ai` / `aiusage --menu` can toggle automatic discovery. Demo mode is
 
 ## Dashboard position
 
+<br>
+
 ![AIUsage bottom-left position](AIUsage/zuoxia.jpg)
+
+<br>
+
 ![AIUsage top-right position](AIUsage/youshang.jpg)
+
+<br>
 
 Press `P` to cycle and save:
 
@@ -258,7 +295,11 @@ Positioning moves the complete natural-size box without stretching its internal 
 
 ## Time and timezones
 
+<br>
+
 ![AIUsage timezone settings](AIUsage/utc.jpg)
+
+<br>
 
 The default is `timezone = "system"`. AIUsage reads the operating system's current timezone whenever it starts and renders; it never caches an old system timezone in configuration. Restarting after the VPS timezone changes automatically follows the new setting.
 
@@ -333,7 +374,11 @@ macOS is untested and may work. Windows is not currently supported. Set `NO_COLO
 
 ## Uninstall
 
+<br>
+
 ![AIUsage uninstall menu](AIUsage/xiezai.jpg)
+
+<br>
 
 The recommended path is option 6 in `ai`, where you explicitly choose whether to preserve or remove user configuration and confirm the action a second time.
 
