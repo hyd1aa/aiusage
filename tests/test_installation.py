@@ -100,19 +100,19 @@ class InstallationPermissionTests(unittest.TestCase):
             archive_bytes = io.BytesIO()
             with tarfile.open(fileobj=archive_bytes, mode="w:gz") as archive:
                 for relative in ("install.sh", "uninstall.sh", "scripts", "src"):
-                    archive.add(ROOT / relative, arcname=f"aiusage-0.2.0/{relative}")
+                    archive.add(ROOT / relative, arcname=f"aiusage-0.2.1/{relative}")
             archive_bytes.seek(0)
 
             class Response(io.BytesIO):
                 def __enter__(self): return self
                 def __exit__(self, *_args): self.close()
 
-            info = ReleaseInfo("0.2.0", "test", "", "https://api.github.com/repos/hyd1aa/aiusage/tarball/v0.2.0")
+            info = ReleaseInfo("0.2.1", "test", "", "https://api.github.com/repos/hyd1aa/aiusage/tarball/v0.2.1")
             before = (metadata(bindir), metadata(libdir))
             with mock.patch("aiusage.updater.urllib.request.urlopen", return_value=Response(archive_bytes.read())):
                 updated, version = install_release(info, "0.1.0", prefix=str(prefix))
             self.assertTrue(updated)
-            self.assertEqual(version, "0.2.0")
+            self.assertEqual(version, "0.2.1")
             self.assertEqual((metadata(bindir), metadata(libdir)), before)
 
     def test_uninstall_preserves_parents_and_third_party_ai(self):

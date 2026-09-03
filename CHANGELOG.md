@@ -24,6 +24,26 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 - Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
   enabled, demo, disabled, and ordering configuration.
 
+## [0.2.1] - 2026-09-03
+
+### Fixed
+
+- Installer no longer changes permissions of existing shared directories such
+  as `/usr/local/bin` and `/usr/local/lib`.
+- Existing directory mode, owner, group, and setgid bits are preserved.
+- Installer now safely fails if an expected directory path is actually a
+  regular file.
+- Uninstaller now verifies AIUsage ownership before removing package and
+  uninstaller paths.
+- Existing third-party `ai` commands remain protected during install, update,
+  and uninstall.
+
+### Tests
+
+- Added installation lifecycle permission regression tests.
+- Full suite: 111 tests.
+- Python 3.10–3.13 CI.
+
 ## [0.2.0] - 2026-09-03
 
 ### Added

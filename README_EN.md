@@ -102,7 +102,7 @@ ai
 
 The idempotent installer always installs `aiusage` and the AIUsage package. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
 
-The installer only manages AIUsage-owned files and does not change permissions on existing shared directories such as `/usr/local/bin` or `/usr/local/lib`.
+The installer only manages AIUsage-owned files and does not modify permissions on existing shared directories such as `/usr/local/bin` or `/usr/local/lib`.
 
 ## After installation
 
