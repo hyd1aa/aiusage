@@ -5,6 +5,19 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Grok reader now uses the latest billing snapshot even when `creditUsagePercent`
+  is omitted after a weekly window reset (proto3 default 0).
+- Successful Grok refreshes replace the previous remaining percent and reset
+  time instead of keeping an expired weekly window.
+
+### Tests
+
+- Added Grok omitted-percent, weekly rollover, stale retention, `R` fetch,
+  30-second refresh, UTC+08 reset, Codex, demo isolation, and PTY regressions.
+- Full suite: 131 tests.
+
 ### Added
 
 - Added a bounded Provider discovery contract with installation, readiness,

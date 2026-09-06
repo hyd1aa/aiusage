@@ -49,6 +49,10 @@ def _timestamp(value):
         return None
 
 
+def remaining_from_used(used) -> int:
+    return 100 - max(0, min(100, int(round(used))))
+
+
 def read_codex() -> tuple[RateLimitWindow, ...]:
     executable = shutil.which("codex")
     if not executable:
@@ -94,8 +98,11 @@ def read_codex() -> tuple[RateLimitWindow, ...]:
             window = snapshot.get(key)
             if not isinstance(window, dict) or "usedPercent" not in window:
                 continue
-            used = max(0, min(100, int(round(window["usedPercent"]))))
-            windows.append(RateLimitWindow(_label(window.get("windowDurationMins"), fallback), 100-used, window.get("resetsAt")))
+            windows.append(RateLimitWindow(
+                _label(window.get("windowDurationMins"), fallback),
+                remaining_from_used(window["usedPercent"]),
+                window.get("resetsAt"),
+            ))
         if not windows:
             raise RuntimeError("No Codex rate-limit windows")
         return tuple(windows)
@@ -107,29 +114,51 @@ def read_codex() -> tuple[RateLimitWindow, ...]:
             proc.kill()
 
 
+def _grok_window(config) -> RateLimitWindow | None:
+    if not isinstance(config, dict):
+        return None
+    period = config.get("currentPeriod")
+    period = period if isinstance(period, dict) else {}
+    reset = _timestamp(period.get("end")) or _timestamp(config.get("billingPeriodEnd"))
+    start = _timestamp(period.get("start")) or _timestamp(config.get("billingPeriodStart"))
+    if reset is None:
+        return None
+    if "creditUsagePercent" in config:
+        used = config["creditUsagePercent"]
+        if not isinstance(used, (int, float)):
+            return None
+    else:
+        # Grok credits JSON omits proto3 default 0 after a window reset.
+        used = 0
+    duration = (reset - start) / 60 if start is not None else None
+    return RateLimitWindow(
+        _label(round(duration) if duration else None, "Cycle"),
+        remaining_from_used(used),
+        reset,
+    )
+
+
 def read_grok() -> tuple[RateLimitWindow, ...]:
     latest = None
     with open(GROK_LOG, "rb") as stream:
+        # Quota records are small and regularly repeated. A bounded tail avoids
+        # scanning an indefinitely growing log every 30 seconds.
         stream.seek(0, os.SEEK_END)
         size = stream.tell()
         stream.seek(max(0, size - 4 * 1024 * 1024))
         if size > 4 * 1024 * 1024:
             stream.readline()
         for raw in stream:
-            if b"creditUsagePercent" not in raw:
+            if b"billingPeriodEnd" not in raw and b"creditUsagePercent" not in raw:
                 continue
             try:
                 item = json.loads(raw)
             except (json.JSONDecodeError, UnicodeDecodeError):
                 continue
-            config = item.get("ctx", {}).get("config", {})
-            used = config.get("creditUsagePercent") if isinstance(config, dict) else None
-            reset = _timestamp(config.get("billingPeriodEnd")) if isinstance(config, dict) else None
-            start = _timestamp(config.get("billingPeriodStart")) if isinstance(config, dict) else None
-            if not isinstance(used, (int, float)) or reset is None:
-                continue
-            duration = (reset-start)/60 if start is not None else None
-            latest = RateLimitWindow(_label(round(duration) if duration else None, "Cycle"), 100-max(0, min(100, int(round(used)))), reset)
+            ctx = item.get("ctx")
+            window = _grok_window(ctx.get("config") if isinstance(ctx, dict) else None)
+            if window is not None:
+                latest = window
     if latest is None:
         raise RuntimeError("No reliable Grok billing snapshot")
     return (latest,)
