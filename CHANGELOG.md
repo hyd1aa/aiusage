@@ -5,19 +5,6 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Grok reader now uses the latest billing snapshot even when `creditUsagePercent`
-  is omitted after a weekly window reset (proto3 default 0).
-- Successful Grok refreshes replace the previous remaining percent and reset
-  time instead of keeping an expired weekly window.
-
-### Tests
-
-- Added Grok omitted-percent, weekly rollover, stale retention, `R` fetch,
-  30-second refresh, UTC+08 reset, Codex, demo isolation, and PTY regressions.
-- Full suite: 131 tests.
-
 ### Added
 
 - Added a bounded Provider discovery contract with installation, readiness,
@@ -36,6 +23,31 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 - Diagnostics now report sanitized discovery states for every Provider.
 - Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
   enabled, demo, disabled, and ordering configuration.
+
+## [0.2.2] - 2026-09-06
+
+### Fixed
+
+- Fixed Grok weekly quota rollover when a new billing period starts
+  at 0% usage.
+- Grok's proto3 JSON may omit `creditUsagePercent` when its value is
+  zero; AIUsage now correctly interprets the omitted default as 0%
+  used instead of skipping the latest billing snapshot.
+- New weekly reset timestamps now replace expired previous-period
+  timestamps correctly.
+- Manual refresh and 30-second refresh now display the latest parsed
+  Grok billing period when present.
+
+### Validation
+
+- 0% used → 100% remaining
+- 100% used → 0% remaining
+- 47% used → 53% remaining
+- Weekly rollover Sep 05 → Sep 12
+- UTC+08 reset conversion verified
+- Stale retention behavior preserved
+- 131 tests passing
+- Python 3.10–3.13 CI passing
 
 ## [0.2.1] - 2026-09-03
 

@@ -200,6 +200,8 @@ aiusage --demo --snapshot --size 80x24
 | CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
 | TraeCode (`traecli`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
 
+Grok weekly quota data is read from the local structured billing log written by the Grok CLI.
+
 “Auto-detectable” means AIUsage can detect the CLI; it does not mean real quota reading is supported. Only Providers validated in a real environment receive the supported-real-usage mark. The `⏳` symbol explicitly means validation is pending. Real mode never substitutes demo values, and an enabled Provider without a verified reader is reported honestly as `Not installed`, `Unavailable`, or `Not supported`.
 
 **ZCode:** ZCode is currently excluded from the primary VPS Provider list because an official headless terminal CLI has not been verified. It can be reconsidered if a suitable CLI becomes available later.
