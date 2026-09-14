@@ -1,6 +1,9 @@
 pub mod config;
 pub mod models;
 pub mod timezones;
+pub mod render;
+pub mod i18n;
+pub mod demo;
 
 pub const VERSION: &str = env!("AIUSAGE_VERSION");
 pub const REFRESH_SECONDS: u64 = 30;

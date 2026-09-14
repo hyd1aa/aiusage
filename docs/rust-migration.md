@@ -56,4 +56,9 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
 - Stage 1 passed: 8 Rust unit tests and 3 differential suites (config, all
   quarter-hour offsets and date boundaries, half-integer rounding). Rust 1.90.0
   runs on native Linux arm64. Python reference remains unchanged.
-- Stage 2 next: frozen-clock render parity. Later stages are not yet complete.
+- Stage 2 passed: 1,008 frozen-clock Dashboard comparisons plus 96 selector
+  comparisons (80x24 included), in 5 differential suites. Layout, labels and
+  foreground styles match. Arbitrary upstream Unicode labels and live system
+  timezone changes still need extended coverage.
+- Next: adapter fixtures and refresh/discovery state; interactive terminal,
+  manager/updater and release targets are not yet complete.
