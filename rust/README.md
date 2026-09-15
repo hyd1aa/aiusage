@@ -34,11 +34,21 @@ tests. Demo never discovers providers or reads quota/authentication data.
 
 ## Not complete
 
-`--menu` / `ai` deliberately fail with an explicit migration-incomplete message;
-they do **not** silently fall back to Python. Manager, diagnostics and updater
-remain the next migration stage. Existing Python manager remains fully usable.
-Binary install/update/uninstall and native validation on all three release
-platforms are also pending. There is no Rust production installer or release.
+Manager/settings, diagnostics, explicit update/uninstall and an isolated Rust
+installer are now implemented. They do not invoke Python. The existing Python
+manager remains fully usable and installed entrypoints have not been changed.
+Native validation on all three release platforms and the full parity review
+remain pending. There is no published Rust release.
+
+The Rust updater expects an official release asset named
+`aiusage-vVERSION-linux-amd64`, `aiusage-vVERSION-linux-arm64` or
+`aiusage-vVERSION-macos-arm64`, with a SHA-256 digest in the GitHub release
+metadata. It validates origin, digest and binary version before installation.
+A Python-only release is not silently installed over a Rust binary. This is an
+intentional distribution-format change, not a quota/config/UI change.
+
+The new `install.sh` in this directory is separate from the Python installer.
+Do not install into a production prefix before release gates have passed.
 
 Known parity-review work: broader malformed CLI/Unicode inputs, cancellation
 during slow provider I/O, concurrent manual/background refresh ordering and

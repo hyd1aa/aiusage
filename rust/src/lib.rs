@@ -3,11 +3,14 @@ pub mod cli;
 pub mod config;
 pub mod dashboard;
 pub mod demo;
+pub mod diagnostics;
 pub mod i18n;
+pub mod manager;
 pub mod models;
 pub mod providers;
 pub mod render;
 pub mod timezones;
+pub mod updater;
 
 pub const VERSION: &str = env!("AIUSAGE_VERSION");
 pub const REFRESH_SECONDS: u64 = 30;

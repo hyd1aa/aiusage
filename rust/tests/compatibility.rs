@@ -307,3 +307,41 @@ fn system_timezone_differential() {
         }
     }
 }
+
+#[test]
+fn manager_screen_differential() {
+    let mut cases = vec![];
+    for language in ["zh", "en"] {
+        for theme in ["white", "green"] {
+            for width in [24, 80, 120] {
+                for unicode in [false, true] {
+                    for latest in [
+                        Value::Null,
+                        json!({"version":"9.0.0","title":"fixture","notes":"","tarball_url":"https://github.com/hyd1aa/aiusage/archive/v9.0.0.tar.gz"}),
+                    ] {
+                        cases.push(json!({"op":"manager","config":config::Config{language:language.into(),theme:theme.into(),..Default::default()},"width":width,"color":true,"unicode":unicode,"latest":latest}));
+                    }
+                }
+            }
+        }
+    }
+    for (case, expected) in cases.iter().zip(reference(&cases, "UTC")) {
+        let cfg = serde_json::from_value(case["config"].clone()).unwrap();
+        let mut menu = aiusage::manager::Manager::new(
+            cfg,
+            std::io::Cursor::new(vec![]),
+            vec![],
+            aiusage::manager::Production,
+        );
+        menu.width = case["width"].as_u64().unwrap() as usize;
+        menu.color = true;
+        menu.unicode = case["unicode"].as_bool().unwrap();
+        menu.latest = serde_json::from_value(case["latest"].clone()).unwrap();
+        menu.main_screen().unwrap();
+        assert_eq!(
+            json!(String::from_utf8(menu.output).unwrap()),
+            expected,
+            "{case}"
+        );
+    }
+}

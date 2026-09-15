@@ -185,8 +185,7 @@ pub fn main(args: Vec<String>) -> i32 {
         Parsed::Args(args) => args,
     };
     if args.menu {
-        eprintln!("Rust manager migration is not complete; use the unchanged Python manager.");
-        return 2;
+        return crate::manager::main();
     }
     let color = !args.snapshot
         && env::var_os("NO_COLOR").is_none()

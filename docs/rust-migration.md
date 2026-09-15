@@ -65,15 +65,33 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
 - CLI: snapshot/version/help and common errors compare against Python; actual
   PTY tests verify Q/Escape/Ctrl-C/SIGTERM and consecutive input with termios
   restoration. Fixed a buffering/poll mismatch exposed by consecutive keys.
-- Current tests: 28 Rust test functions, including 7 differential suites and
+- Foundation checkpoint tests: 28 Rust test functions, including 7 differential suites and
   5 PTY scenarios. System timezone checked in isolated processes for UTC,
   Shanghai, New York (summer/winter), Kathmandu and Adelaide.
 - Native Linux arm64 release build passes and prints `AIUsage 0.2.2` without
   Python. Initial GNU build links libc/libgcc; static-musl packaging is being
   checked separately and is not a substitute for completing the manager.
-- Next action: migrate manager/diagnostics/updater with scripted-input and
-  archive/network fixtures, then installer/lifecycle and native target matrix.
-  `--menu` intentionally fails closed meanwhile; no Python fallback at runtime.
+- Manager/diagnostics/updater implemented: six menu actions, 96 main-screen
+  differential cases, scripted settings/cancel/order/confirmation tests.
+  Diagnostics reports Rust rather than a fabricated Python requirement.
+- Separate Rust installer supports binary + `ai` symlink entry; temporary-PREFIX
+  lifecycle tests cover shared metadata, third-party commands, reserved paths,
+  verified-binary update, digest failure and no-op update.
+- Distribution change: Rust updates require an official target-specific binary
+  asset with [GitHub SHA-256 digest metadata](https://docs.github.com/en/rest/releases/assets).
+  No archive extraction or Python fallback; stable release, confirmation,
+  trusted source, version verification and config retention remain mandatory.
+  Version cache remains readable by the Python reference. HTTPS/repository
+  validation is intentionally stricter than the old substring check.
+- Manager/update checkpoint: 45 Rust test functions pass, including 8
+  differential suites. Failed publication restores the previous owned install;
+  digest/version mismatch fails before installation. Installer scripts are
+  tested only against temporary prefixes.
+- Added independent native CI for Linux amd64, Linux arm64 and macOS arm64,
+  including musl release builds on Linux and PTY tests of release artifacts.
+  CI uploads review artifacts only, never tags or GitHub Releases.
+- Next action: native CI/build verification, terminal edge cases and complete
+  parity review. No production install.
 - Outstanding parity review: arbitrary Unicode inputs, full argparse edge
   cases, cancellation during slow provider I/O, and concurrent manual/worker
   refresh ordering. Existing tests cover module behavior, not full equivalence.

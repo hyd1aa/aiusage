@@ -16,6 +16,18 @@ from aiusage.models import ProviderUsage, RateLimitWindow, Availability
 
 def evaluate(case):
     operation = case["op"]
+    if operation == "manager":
+        import io
+        from aiusage.manager import Manager
+        from aiusage.updater import ReleaseInfo
+        output = io.StringIO()
+        menu = Manager(config.Config(**case["config"]), output=output)
+        menu.color = case["color"]
+        menu._unicode = lambda: case["unicode"]
+        menu.latest = ReleaseInfo(**case["latest"]) if case["latest"] else None
+        with mock.patch("aiusage.manager.shutil.get_terminal_size", return_value=__import__("os").terminal_size((case["width"],24))):
+            menu.main_screen()
+        return output.getvalue()
     if operation == "grok":
         from aiusage.providers import _grok_window
         result = _grok_window(case["config"])
