@@ -2,6 +2,7 @@
 """Offline, high-confidence sensitive-data check for tracked Git content."""
 
 import re
+import hashlib
 import subprocess
 import sys
 
@@ -19,6 +20,18 @@ PATTERNS = {
 }
 
 
+def reviewed_fixture_match(path, content, label):
+    # A historical Rust version-tuple fixture contains a four-component
+    # version, not an address. Scope this exception to that exact reviewed
+    # blob and this one pattern; all other secret checks still apply.
+    return (
+        path == "rust/tests/compatibility.rs"
+        and label == "IPv4 address"
+        and hashlib.sha256(content).hexdigest()
+        == "11f07332664075650d69e754a3123debdf3537e733d695a5a7322259bb608bf4"
+    )
+
+
 def git_objects():
     rows = subprocess.check_output(["git", "rev-list", "--objects", "--all"]).splitlines()
     for row in rows:
@@ -34,7 +47,7 @@ def main():
     findings = []
     for path, content in git_objects():
         for label, pattern in PATTERNS.items():
-            if pattern.search(content):
+            if pattern.search(content) and not reviewed_fixture_match(path, content, label):
                 findings.append(f"{path}: {label}")
     if findings:
         print("Sensitive-pattern check failed:", file=sys.stderr)
@@ -46,4 +59,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

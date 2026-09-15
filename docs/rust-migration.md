@@ -30,10 +30,22 @@ run with `cargo test --test compatibility version_sensitive_iso_acceptance_gate
 -- --ignored --nocapture`. Standard CI green must never be described as full
 parity while it remains open.
 
-Next action: resolve the reference-version choice (current environment Python
-3.10 recommended; Python 3.12 alternative), implement that ISO acceptance
-contract, remove the ignore, add matching version-specific native CI coverage,
-and rerun the gate. Never silently drop the divergent fixtures.
+CI follow-up at `635a151`: all Python regressions passed, but its sensitive
+scan misidentified a four-component test version as an IPv4 address. The
+fixture is now assembled without an address-shaped literal; the historical
+blob has one exact SHA-256-scoped exemption for that pattern only. No actual
+secret was present, and Git history is preserved.
+
+Native CI `34939589945` also exposed a second cross-version difference:
+`--help --s` yields exit 2 on local Python **3.10.12**, but exit 0 on hosted
+Python **3.12.14**. The normal CLI differential tests remain strict and CI
+therefore remains red until the reference contract is chosen. Do not suppress
+this failure or report the parity gate as green.
+
+Next action: resolve the reference-version choice (exact current environment
+Python 3.10.12 recommended; Python 3.12.14 alternative), implement its CLI and
+ISO acceptance contract, remove the ISO ignore, add matching reference-version
+CI coverage, and rerun the gates. Never silently drop the divergent fixtures.
 
 Known scope notes: Rust emits UTF-8 independently of Python-only encoding
 environment flags; arbitrary legacy-codepage transcoding is not validated.
