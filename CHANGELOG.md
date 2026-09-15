@@ -24,6 +24,38 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 - Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
   enabled, demo, disabled, and ordering configuration.
 
+## [0.3.0] - 2026-09-15
+
+### Changed
+
+- Replaced the published runtime with a behavior-compatible Rust
+  implementation. User configuration, CODEX and GROK readers, Dashboard,
+  management menu, timezone handling, discovery, and refresh cadence remain
+  compatible with the Python 0.2.2 reference.
+- Official updates now install platform binaries
+  (`aiusage-vVERSION-linux-amd64`, `aiusage-vVERSION-linux-arm64`,
+  `aiusage-vVERSION-macos-arm64`) from GitHub Release assets with origin,
+  SHA-256, and `--version` verification. Linux artifacts are stripped musl
+  static binaries. macOS artifacts are self-contained application binaries
+  that link the OS-provided libSystem, libiconv, and CoreFoundation.
+- Python 3.10 remains the canonical behavior oracle. The Python source stays
+  in the repository as the differential reference and as the rollback
+  implementation. Replacing a running Python installation is a separate,
+  explicitly authorized step.
+
+### Validation
+
+- Python 3.10 CLI, timestamp, menu, provider, updater, and Dashboard
+  differential and golden tests.
+- Isolated Python → Rust upgrade and Rust → Python rollback rehearsal.
+- Native CI on Linux amd64, Linux arm64, and macOS arm64.
+
+### Compatibility notes
+
+- Arbitrary legacy-codepage transcoding is out of scope.
+- Rust integers are bounded; Python bigints are not.
+- Invalid Codex reset objects are not rendered as arbitrary Python objects.
+
 ## [0.2.2] - 2026-09-06
 
 ### Fixed

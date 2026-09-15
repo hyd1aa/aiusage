@@ -71,14 +71,26 @@ AIUsage 最初就是围绕 tmux 三分屏工作流设计的。一个实用的布
 
 ## 一键安装
 
+v0.3.0 起，正式发布是 Rust 二进制。从
+[GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest)
+下载对应平台文件：
+
+- `aiusage-v0.3.0-linux-amd64`（static musl）
+- `aiusage-v0.3.0-linux-arm64`（static musl）
+- `aiusage-v0.3.0-macos-arm64`
+
+然后：
+
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo ./install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./rust/install.sh
 ai
 ```
 
-安装器始终安装 `aiusage` 和 AIUsage package。如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。
+用户配置与 0.2.2 兼容。仓库根目录的 `install.sh` 仍安装 Python 实现，只用于回滚，不是 v0.3.0 的默认安装路径。
+
+安装器始终安装 `aiusage`。如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。
 
 安装器只管理 AIUsage 自己的文件，不会修改已有 `/usr/local/bin`、`/usr/local/lib` 等公共目录的权限。
 

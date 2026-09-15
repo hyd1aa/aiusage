@@ -1,8 +1,9 @@
-# AIUsage Rust migration (experimental)
+# AIUsage Rust implementation
 
-This directory is an incremental implementation, **not yet a replacement** for
-the Python release. Do not install it over existing `aiusage`/`ai` commands.
-The reference source and its installer are unchanged.
+This directory is the v0.3.0 published runtime. The Python source remains the
+Python 3.10 behavior oracle and the rollback implementation. Do not replace a
+running Python production prefix unless that cutover has been explicitly
+authorized.
 
 ## Build and test
 
@@ -32,14 +33,12 @@ tests. Demo never discovers providers or reads quota/authentication data.
 - Discovery/readiness, explicit opt-outs, 300s discovery and 30s refresh.
 - Dashboard keys, snapshot/version/help, non-TTY errors, terminal cleanup.
 
-## Not complete
+## Distribution
 
 Manager/settings, diagnostics, explicit update/uninstall and an isolated Rust
-installer are now implemented. They do not invoke Python. The existing Python
-manager remains fully usable and installed entrypoints have not been changed.
-Native Linux amd64, Linux arm64 and macOS arm64 CI has passed, including
-release-binary PTY checks. The final edge-case parity review remains pending.
-There is no published Rust release.
+installer are implemented. They do not invoke Python. Native Linux amd64,
+Linux arm64 and macOS arm64 CI builds the published binaries. The Python
+manager remains in the repository for differential tests and rollback.
 
 The Rust updater expects an official release asset named
 `aiusage-vVERSION-linux-amd64`, `aiusage-vVERSION-linux-arm64` or
@@ -48,8 +47,8 @@ metadata. It validates origin, digest and binary version before installation.
 A Python-only release is not silently installed over a Rust binary. This is an
 intentional distribution-format change, not a quota/config/UI change.
 
-The new `install.sh` in this directory is separate from the Python installer.
-Do not install into a production prefix before release gates have passed.
+The `install.sh` in this directory is separate from the Python installer.
+Do not install into a production prefix unless that cutover is authorized.
 
 The canonical Python 3.10 parity review now covers malformed CLI/ISO timestamp
 inputs, UTF-8 zh/en menu bytes, Unicode decimal timezones and live manager
@@ -62,7 +61,7 @@ version and the audited local reference runtime. Python 3.11+ differs in
 argparse action ordering and accepts a broader ISO grammar, so native Rust CI
 pins 3.10 while the unchanged Python suite still runs on 3.10–3.13. The ISO
 gate is active, not ignored. UTF-8 menu bytes, CLI error ordering, Unicode
-dimension inputs and timestamp boundaries have differential tests. Green CI
-still does not itself authorize replacing Python or publishing Rust.
+dimension inputs and timestamp boundaries have differential tests. Publishing
+this runtime does not itself replace a running Python production installation.
 
 See [the migration audit and phase gates](../docs/rust-migration.md).

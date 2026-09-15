@@ -93,14 +93,28 @@ The default demo shows Codex, Grok, MiniMax, Qoder, CodeBuddy, and TraeCode. Exc
 
 ## Installation
 
+From v0.3.0 the published runtime is a Rust binary. Download the file for
+your platform from the
+[GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest):
+
+- `aiusage-v0.3.0-linux-amd64` (static musl)
+- `aiusage-v0.3.0-linux-arm64` (static musl)
+- `aiusage-v0.3.0-macos-arm64`
+
+Then:
+
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo ./install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./rust/install.sh
 ai
 ```
 
-The idempotent installer always installs `aiusage` and the AIUsage package. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
+User configuration remains compatible with 0.2.2. The repository-root
+`install.sh` still installs the Python implementation and is the rollback
+path, not the default v0.3.0 install.
+
+The installer always installs `aiusage`. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
 
 The installer only manages AIUsage-owned files and does not modify permissions on existing shared directories such as `/usr/local/bin` or `/usr/local/lib`.
 
