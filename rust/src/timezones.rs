@@ -1,4 +1,4 @@
-use chrono::{DateTime, FixedOffset, Local, Offset, TimeZone, Utc};
+use chrono::{DateTime, Datelike, FixedOffset, Local, Offset, TimeZone, Utc};
 
 pub const MINUTES_MIN: i32 = -720;
 pub const MINUTES_MAX: i32 = 840;
@@ -91,18 +91,32 @@ pub fn from_epoch(epoch: f64, setting: &str) -> Result<DateTime<FixedOffset>, &'
     if !epoch.is_finite() {
         return Err("invalid timestamp");
     }
-    let seconds = epoch.floor();
-    let nanos = ((epoch - seconds) * 1e9).round().clamp(0.0, 999_999_999.0) as u32;
+    if !(-62135596800.0..253402300800.0).contains(&epoch) {
+        return Err("invalid timestamp");
+    }
+    let mut seconds = epoch.floor() as i64;
+    let mut micros = ((epoch - epoch.floor()) * 1e6).round_ties_even() as u32;
+    if micros == 1_000_000 {
+        seconds += 1;
+        micros = 0;
+    }
     let utc = Utc
-        .timestamp_opt(seconds as i64, nanos)
+        .timestamp_opt(seconds, micros * 1000)
         .single()
         .ok_or("invalid timestamp")?;
-    Ok(match parse(setting)? {
+    if !(1..=9999).contains(&utc.year()) {
+        return Err("invalid timestamp");
+    }
+    let value = match parse(setting)? {
         Zone::System => utc.with_timezone(&Local).fixed_offset(),
         Zone::Fixed(minutes) => {
             utc.with_timezone(&FixedOffset::east_opt(minutes * 60).ok_or("invalid timezone")?)
         }
-    })
+    };
+    if !(1..=9999).contains(&value.year()) {
+        return Err("invalid timestamp");
+    }
+    Ok(value)
 }
 
 pub fn label_for(value: &DateTime<FixedOffset>) -> String {
@@ -137,6 +151,22 @@ mod tests {
         ] {
             assert!(parse(s).is_err(), "{s}");
         }
+    }
+    #[test]
+    fn nonfinite_and_outside_python_years_are_rejected() {
+        for epoch in [
+            f64::NAN,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            1e30,
+            -1e30,
+            -62135596801.0,
+            253402300800.0,
+        ] {
+            assert!(from_epoch(epoch, "UTC").is_err());
+        }
+        assert!(from_epoch(-62135596800.0, "UTC").is_ok());
+        assert!(from_epoch(253402300799.0, "UTC").is_ok());
     }
     #[test]
     fn all_minute_offsets_roundtrip() {

@@ -31,11 +31,11 @@ pub struct ReleaseInfo {
     #[serde(default)]
     pub assets: Vec<Asset>,
 }
-pub fn version_tuple(value: &str) -> Vec<u64> {
+pub fn version_tuple(value: &str) -> Vec<i64> {
     value
         .split('.')
-        .map(str::parse)
-        .collect::<Result<_, _>>()
+        .map(crate::cli::python_integer)
+        .collect::<Option<_>>()
         .unwrap_or_default()
 }
 pub fn is_newer(latest: &str, current: &str) -> bool {

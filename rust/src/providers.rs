@@ -2,7 +2,7 @@ use crate::{
     models::{remaining_from_used, Availability, ProviderUsage, RateLimitWindow},
     PROVIDERS,
 };
-use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -132,13 +132,30 @@ pub fn timestamp(value: &Value) -> Option<f64> {
     if let Some(n) = number(value) {
         return Some(n);
     }
-    let text = value.as_str()?.replace('Z', "+00:00");
+    let mut text = value.as_str()?.replace('Z', "+00:00");
+    // fromisoformat accepts a time specified to the hour or minute.
+    if text.len() >= 13 && text.is_char_boundary(10) && text.is_char_boundary(11) {
+        let end = text[11..]
+            .find(['+', '-'])
+            .map(|i| i + 11)
+            .unwrap_or(text.len());
+        if end == 13 {
+            text.insert_str(end, ":00:00");
+        } else if end == 16 {
+            text.insert_str(end, ":00");
+        }
+    }
+    let epoch = |value: DateTime<chrono::FixedOffset>| {
+        // chrono represents leap seconds; Python datetime rejects them.
+        (value.nanosecond() < 1_000_000_000)
+            .then(|| value.timestamp() as f64 + value.timestamp_subsec_micros() as f64 / 1e6)
+    };
     if let Ok(value) = DateTime::parse_from_rfc3339(&text) {
-        return Some(value.timestamp() as f64 + value.timestamp_subsec_nanos() as f64 / 1e9);
+        return epoch(value);
     }
     for format in ["%Y-%m-%d %H:%M:%S%.f%:z", "%Y-%m-%dT%H:%M:%S%.f%:z"] {
         if let Ok(value) = DateTime::parse_from_str(&text, format) {
-            return Some(value.timestamp() as f64 + value.timestamp_subsec_nanos() as f64 / 1e9);
+            return epoch(value);
         }
     }
     let naive = NaiveDateTime::parse_from_str(&text, "%Y-%m-%dT%H:%M:%S%.f")
@@ -148,7 +165,7 @@ pub fn timestamp(value: &Value) -> Option<f64> {
         })
         .ok()?;
     let value = Local.from_local_datetime(&naive).earliest()?;
-    Some(value.timestamp() as f64 + value.timestamp_subsec_nanos() as f64 / 1e9)
+    epoch(value.fixed_offset())
 }
 pub fn grok_window(config: &Value) -> Option<RateLimitWindow> {
     config.as_object()?;

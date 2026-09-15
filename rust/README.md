@@ -57,4 +57,12 @@ covered; slow provider cancellation and serialized manual refreshes are tested
 with owned synthetic processes. Passing the current tests is not full parity
 evidence.
 
+Latest checkpoint: 57 tests pass and one **explicit ISO-version parity gate is
+open/ignored** in the ordinary suite. It fails when run explicitly against
+Python 3.10. Python 3.10 and 3.11+ disagree on accepted ISO forms; the reference
+version must be selected before closing this gate. UTF-8 menu bytes, CLI error
+ordering, Unicode dimension inputs and common timestamp boundaries now have
+additional differential tests. Do not interpret green ordinary CI as permission
+to replace Python or publish Rust.
+
 See [the migration audit and phase gates](../docs/rust-migration.md).

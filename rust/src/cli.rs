@@ -34,6 +34,27 @@ pub enum Parsed {
     Version,
 }
 pub fn parse(args: &[String]) -> Result<Parsed, String> {
+    // argparse classifies every option before executing help/version actions.
+    for token in args.iter().take_while(|s| s.as_str() != "--") {
+        let name = token.split('=').next().unwrap_or(token);
+        let candidates: Vec<_> = [
+            "--help",
+            "--demo",
+            "--menu",
+            "--snapshot",
+            "--size",
+            "--version",
+        ]
+        .into_iter()
+        .filter(|flag| name.starts_with("--") && flag.starts_with(name))
+        .collect();
+        if candidates.len() > 1 {
+            return Err(format!(
+                "ambiguous option: {name} could match {}",
+                candidates.join(", ")
+            ));
+        }
+    }
     let mut parsed = Args::default();
     let mut index = 0;
     let mut unknown = vec![];
@@ -42,6 +63,16 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
         if token == "--" {
             unknown.extend(args[index..].iter().cloned());
             break;
+        }
+        if let Some(tail) = token.strip_prefix("-h").filter(|s| !s.is_empty()) {
+            if tail.chars().all(|c| c == 'h') {
+                return Ok(Parsed::Help);
+            }
+            return Err(format!(
+                "argument -h/--help: ignored explicit argument '{}'",
+                tail.strip_prefix('=')
+                    .unwrap_or_else(|| tail.trim_start_matches('h'))
+            ));
         }
         let (arg, assigned) = token
             .split_once('=')
@@ -77,7 +108,8 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
             )
         {
             return Err(format!(
-                "argument {arg}: ignored explicit argument '{}'",
+                "argument {}: ignored explicit argument '{}'",
+                if arg == "--help" { "-h/--help" } else { arg },
                 assigned.unwrap()
             ));
         }
@@ -93,7 +125,12 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
                 } else {
                     index += 1;
                     args.get(index)
-                        .filter(|s| !s.starts_with('-') || negative_number(s))
+                        .filter(|s| {
+                            !s.starts_with('-')
+                                || s.as_str() == "-"
+                                || s.contains(' ')
+                                || negative_number(s)
+                        })
                         .ok_or("argument --size: expected one argument")?
                         .clone()
                 };
@@ -114,11 +151,18 @@ fn negative_number(value: &str) -> bool {
         return false;
     };
     if let Some((whole, fraction)) = value.split_once('.') {
-        whole.bytes().all(|c| c.is_ascii_digit())
+        whole
+            .chars()
+            .all(|c| crate::timezones::decimal_digit(c).is_some())
             && !fraction.is_empty()
-            && fraction.bytes().all(|c| c.is_ascii_digit())
+            && fraction
+                .chars()
+                .all(|c| crate::timezones::decimal_digit(c).is_some())
     } else {
-        !value.is_empty() && value.bytes().all(|c| c.is_ascii_digit())
+        !value.is_empty()
+            && value
+                .chars()
+                .all(|c| crate::timezones::decimal_digit(c).is_some())
     }
 }
 pub fn dimensions(size: &str) -> Result<(usize, usize), &'static str> {
@@ -130,12 +174,34 @@ pub fn dimensions(size: &str) -> Result<(usize, usize), &'static str> {
     if parts.len() != 2 {
         return Err("aiusage: --size must be WIDTHxHEIGHT");
     }
-    let values: Result<Vec<i64>, _> = parts.iter().map(|s| s.trim().parse()).collect();
-    let values = values.map_err(|_| "aiusage: --size must be WIDTHxHEIGHT")?;
+    let values: Option<Vec<i64>> = parts.iter().map(|s| python_integer(s)).collect();
+    let values = values.ok_or("aiusage: --size must be WIDTHxHEIGHT")?;
     if values.iter().any(|v| *v < 1) {
         return Err("aiusage: --size dimensions must be positive");
     }
     Ok((values[0] as usize, values[1] as usize))
+}
+pub fn python_integer(value: &str) -> Option<i64> {
+    let text = value.trim();
+    let (sign, digits) = if let Some(s) = text.strip_prefix('-') {
+        ("-", s)
+    } else {
+        ("", text.strip_prefix('+').unwrap_or(text))
+    };
+    let mut normalized = sign.to_string();
+    let mut digit_before = false;
+    for c in digits.chars() {
+        if c == '_' && digit_before {
+            digit_before = false;
+            continue;
+        }
+        normalized.push(char::from_digit(crate::timezones::decimal_digit(c)?, 10)?);
+        digit_before = true;
+    }
+    if !digit_before {
+        return None;
+    }
+    normalized.parse().ok()
 }
 pub fn now() -> f64 {
     SystemTime::now()

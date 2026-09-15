@@ -135,3 +135,39 @@ fn manager_rechecks_terminal_width_before_each_write() {
         "abcdefghijkl\nabcdefghijklmnop\n"
     );
 }
+
+#[test]
+fn real_diagnostics_are_sanitized_with_isolated_empty_provider_environment() {
+    if std::env::var_os("AIUSAGE_DIAGNOSTIC_CHILD").is_some() {
+        let rows = aiusage::diagnostics::collect(&Config::default(), Some(false));
+        let text = format!("{rows:?}");
+        assert!(!text.contains("fixture-private-marker"));
+        assert!(rows
+            .iter()
+            .any(|(name, ok, detail)| name == "Rust" && *ok && detail == "native binary"));
+        assert!(rows
+            .iter()
+            .any(|(name, ok, detail)| name == "Codex usage" && !ok && detail == "unavailable"));
+        assert!(rows.iter().any(|(name, ok, _)| name == "GitHub" && !ok));
+        return;
+    }
+    let home = tempfile::tempdir().unwrap();
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "real_diagnostics_are_sanitized_with_isolated_empty_provider_environment",
+        ])
+        .env("AIUSAGE_DIAGNOSTIC_CHILD", "1")
+        .env("HOME", home.path())
+        .env("PATH", home.path())
+        .env("LC_ALL", "fixture-private-marker.UTF-8")
+        .env_remove("CODEX_API_KEY")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

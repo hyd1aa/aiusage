@@ -566,7 +566,7 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
     }
 }
 fn python_index(value: &str, len: usize) -> Option<usize> {
-    let index = value.parse::<i64>().ok()?.checked_sub(1)?;
+    let index = crate::cli::python_integer(value)?.checked_sub(1)?;
     let index = if index < 0 { len as i64 + index } else { index };
     if index < 0 || index >= len as i64 {
         None

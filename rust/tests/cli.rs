@@ -53,11 +53,17 @@ fn help_version_and_errors_match_python() {
     let home = tempfile::tempdir().unwrap();
     for args in [
         vec!["--help"],
+        vec!["--help", "--s"],
+        vec!["-hh"],
+        vec!["-hX"],
+        vec!["--help=X"],
         vec!["--version"],
         vec!["--bad"],
         vec!["--"],
         vec!["--", "--help"],
         vec!["--size", "-1"],
+        vec!["--size", "-١"],
+        vec!["--size", "-"],
         vec!["--size", "-.5"],
         vec!["--size", "-1."],
         vec!["--demo", "--snapshot", "--size", "-1"],

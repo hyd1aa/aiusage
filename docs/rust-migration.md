@@ -4,6 +4,48 @@ Reference: Python 0.2.2, commit `f50ecabd4873b45446ff55d7c36eae694f02f272`.
 The existing Python source, tests, launchers and installer remain unchanged.
 Baseline: 131 Python unittest tests passed before implementation.
 
+## Current checkpoint — restored 2026-09-15
+
+Read-only recovery found local HEAD and the actual remote migration branch at
+`31d2aeb0be7986ca0ef4ebb7f883e45a6f588402`, clean, with no later commits.
+Local/remote main remained `f50ecabd4873b45446ff55d7c36eae694f02f272`.
+Evidence: this document, `rust/README.md`, seven migration commits, `git
+ls-remote`, Python CI `34938151157` and native Rust CI `34938151150` (all green).
+This document is the existing checkpoint; do not restart the migration.
+
+| Gate | Recovered evidence / follow-up |
+| --- | --- |
+| Config / HOME / discovery / refresh | Implemented; legacy config, private writes, HOME fallback, opt-outs, 30s/300s cadence, cancelled owned processes and serialized real-mode fixture reads tested. |
+| Dashboard / timezone / theme / language | 1,008 frozen frames, selectors, system DST/timezones; no redesign. |
+| CLI streams / exit / malformed arguments | New 702-case parser differential matrix plus process stdout/stderr/exit checks; fixed pre-action ambiguity detection, short help clusters, option-like values, Unicode and underscore integers. |
+| Timestamp common/boundary formats | New isolated-TZ oracle matrix; fixed hour/minute precision, leap-second rejection, microsecond carry and Python year 1..9999 limits before/after conversion. |
+| Menu / diagnostics | UTF-8 bytes compared with real Python TextIOWrapper in zh/en at 10/20/39/40/80 columns; live width already tested. Diagnostics tested with empty synthetic PATH/HOME and a redaction canary. Rust identifies its runtime honestly. |
+| Providers / updater | Existing Grok fixtures retained; 54 new Codex reply cases use a fake Python Popen/select, never a real account. Version tuple comparison now preserves signed/Unicode integers. Verified binary assets intentionally replace Python source archives. |
+| ISO parser version-specific behavior | **OPEN**: Python 3.10 rejects nine fractional digits; Python 3.11+ accepts/truncates them and adds basic/week date syntax. One explicit ignored gate retains these cases. It was run manually and failed on Python 3.10 (Rust accepts nine digits). Not a passing gate. |
+| Native release artifacts | Previous head verified on all three native runners; follow-up CI required for this patch. No install, main merge, tag or release. |
+
+Current local result: **57 passed, 1 explicitly ignored/open gate**; clippy
+and fmt pass. The open test is `version_sensitive_iso_acceptance_gate` and is
+run with `cargo test --test compatibility version_sensitive_iso_acceptance_gate
+-- --ignored --nocapture`. Standard CI green must never be described as full
+parity while it remains open.
+
+Next action: resolve the reference-version choice (current environment Python
+3.10 recommended; Python 3.12 alternative), implement that ISO acceptance
+contract, remove the ignore, add matching version-specific native CI coverage,
+and rerun the gate. Never silently drop the divergent fixtures.
+
+Known scope notes: Rust emits UTF-8 independently of Python-only encoding
+environment flags; arbitrary legacy-codepage transcoding is not validated.
+Rust integers are bounded (unlike Python bigint). Invalid Codex reset types
+are not rendered as arbitrary Python objects. These must remain explicit
+compatibility limitations, not claims of universal input equivalence.
+
+Safety: Python reference diff remains empty; all provider data are fixtures;
+installation/update tests use temporary prefixes. Production entrypoints,
+credentials, services and Airport Monitor are untouched. No parity completion
+or promotion is claimed.
+
 ## Audited contracts
 
 | Area | Reference and observable behavior |
