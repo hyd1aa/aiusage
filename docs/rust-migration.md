@@ -22,11 +22,11 @@ This document is the existing checkpoint; do not restart the migration.
 | Menu / diagnostics | UTF-8 bytes compared with real Python TextIOWrapper in zh/en at 10/20/39/40/80 columns; live width already tested. Diagnostics tested with empty synthetic PATH/HOME and a redaction canary. Rust identifies its runtime honestly. |
 | Providers / updater | Existing Grok fixtures retained; 54 new Codex reply cases use a fake Python Popen/select, never a real account. Version tuple comparison now preserves signed/Unicode integers. Verified binary assets intentionally replace Python source archives. |
 | ISO parser version-specific behavior | Closed against the canonical Python 3.10 oracle: fractions 1–9 and basic/week/comma forms are tested, with only Python 3.10-supported forms accepted. Python 3.11+ differences remain documented. |
-| Native release artifacts | Previous head verified on all three native runners; follow-up CI required for this patch. No install, main merge, tag or release. |
+| Native release artifacts | Latest code commit `7f18830` passed Linux amd64, Linux arm64 and macOS arm64 native CI (`34970211597`). Local Linux arm64 musl output is stripped/static with no dynamic section and passed both PTY harnesses. |
 
-Current local result after the oracle decision: **58 passed, 0 ignored**;
-clippy and fmt pass. Python reference regression remains 131/131. Native CI
-must pass at the follow-up commit before the platform gate is closed.
+Current result after the oracle decision: **58 passed, 0 ignored**; clippy and
+fmt pass. Python reference regression remains 131/131. Python CI
+`34970211607` and three-platform Rust CI `34970211597` both passed.
 
 CI follow-up at `635a151`: all Python regressions passed, but its sensitive
 scan misidentified a four-component test version as an IPv4 address. The
@@ -55,8 +55,9 @@ compatibility limitations, not claims of universal input equivalence.
 
 Safety: Python reference diff remains empty; all provider data are fixtures;
 installation/update tests use temporary prefixes. Production entrypoints,
-credentials, services and Airport Monitor are untouched. No parity completion
-or promotion is claimed.
+credentials, services and Airport Monitor are untouched. The defined Python
+3.10 behavioral parity gate is closed with the documented limits above; no
+production promotion, main merge, Python removal, tag or release is claimed.
 
 ## Audited contracts
 
@@ -169,8 +170,10 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
   parsing, timestamp and year/microsecond boundaries, active Python 3.10 ISO
   grammar gate, 54 Codex reply cases, version comparison, UTF-8 zh/en menu bytes
   and sanitized diagnostics. Intentional limits are recorded above.
-- Next action: native CI and final static artifact verification for the latest
-  commit. No production install or promotion yet. Provider cancellation,
-  serialized refresh and live menu width have explicit tests.
+- The canonical Python 3.10 parity gate and native artifact gate are now
+  complete at `7f18830`. The branch is an implementation candidate for a
+  separate promotion/release decision. No production install or promotion was
+  performed. Provider cancellation, serialized refresh and live menu width
+  have explicit tests.
 - No release, tag, production installation, or Python removal is authorized
   by this checkpoint. Python remains the current production implementation.
