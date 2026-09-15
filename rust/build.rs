@@ -6,10 +6,17 @@ fn main() {
     let source = "../src/aiusage/__init__.py";
     println!("cargo:rerun-if-changed={source}");
     let text = fs::read_to_string(source).expect("reference version source");
-    let version = text.lines().find_map(|line| {
-        line.strip_prefix("__version__ = ")
-            .map(|value| value.trim_matches('"'))
-    }).expect("reference version");
-    assert_eq!(version, env::var("CARGO_PKG_VERSION").unwrap(), "Cargo metadata drift");
+    let version = text
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("__version__ = ")
+                .map(|value| value.trim_matches('"'))
+        })
+        .expect("reference version");
+    assert_eq!(
+        version,
+        env::var("CARGO_PKG_VERSION").unwrap(),
+        "Cargo metadata drift"
+    );
     println!("cargo:rustc-env=AIUSAGE_VERSION={version}");
 }

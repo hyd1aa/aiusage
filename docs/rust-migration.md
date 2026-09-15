@@ -57,8 +57,25 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
   quarter-hour offsets and date boundaries, half-integer rounding). Rust 1.90.0
   runs on native Linux arm64. Python reference remains unchanged.
 - Stage 2 passed: 1,008 frozen-clock Dashboard comparisons plus 96 selector
-  comparisons (80x24 included), in 5 differential suites. Layout, labels and
-  foreground styles match. Arbitrary upstream Unicode labels and live system
-  timezone changes still need extended coverage.
-- Next: adapter fixtures and refresh/discovery state; interactive terminal,
-  manager/updater and release targets are not yet complete.
+  comparisons (80x24 included). Layout, labels and foreground styles match.
+- Adapter and Dashboard stages: Codex fake-process handshake, malformed data,
+  bounded timeout/child cleanup; Grok rollover/4 MiB tail/differential fixtures;
+  opt-outs/discovery retention, stale refresh, pure key effects and monotonic
+  cadence implemented. No live provider data or credentials used.
+- CLI: snapshot/version/help and common errors compare against Python; actual
+  PTY tests verify Q/Escape/Ctrl-C/SIGTERM and consecutive input with termios
+  restoration. Fixed a buffering/poll mismatch exposed by consecutive keys.
+- Current tests: 28 Rust test functions, including 7 differential suites and
+  5 PTY scenarios. System timezone checked in isolated processes for UTC,
+  Shanghai, New York (summer/winter), Kathmandu and Adelaide.
+- Native Linux arm64 release build passes and prints `AIUsage 0.2.2` without
+  Python. Initial GNU build links libc/libgcc; static-musl packaging is being
+  checked separately and is not a substitute for completing the manager.
+- Next action: migrate manager/diagnostics/updater with scripted-input and
+  archive/network fixtures, then installer/lifecycle and native target matrix.
+  `--menu` intentionally fails closed meanwhile; no Python fallback at runtime.
+- Outstanding parity review: arbitrary Unicode inputs, full argparse edge
+  cases, cancellation during slow provider I/O, and concurrent manual/worker
+  refresh ordering. Existing tests cover module behavior, not full equivalence.
+- No release, tag, production installation, or Python removal is authorized
+  by this checkpoint. Python remains the current production implementation.

@@ -16,6 +16,10 @@ from aiusage.models import ProviderUsage, RateLimitWindow, Availability
 
 def evaluate(case):
     operation = case["op"]
+    if operation == "grok":
+        from aiusage.providers import _grok_window
+        result = _grok_window(case["config"])
+        return dataclasses.asdict(result) if result else None
     if operation == "frame":
         cfg = config.Config(**case["config"])
         with mock.patch("aiusage.demo.time.time", return_value=case["now"]):

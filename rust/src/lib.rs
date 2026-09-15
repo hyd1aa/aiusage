@@ -1,9 +1,13 @@
+pub mod cadence;
+pub mod cli;
 pub mod config;
-pub mod models;
-pub mod timezones;
-pub mod render;
-pub mod i18n;
+pub mod dashboard;
 pub mod demo;
+pub mod i18n;
+pub mod models;
+pub mod providers;
+pub mod render;
+pub mod timezones;
 
 pub const VERSION: &str = env!("AIUSAGE_VERSION");
 pub const REFRESH_SECONDS: u64 = 30;
@@ -13,7 +17,12 @@ pub const DISCOVERY_TIMEOUT_SECONDS: u64 = 2;
 pub const CODEX_TIMEOUT_SECONDS: u64 = 8;
 
 pub const PROVIDERS: &[(&str, &str)] = &[
-    ("codex", "Codex"), ("grok", "Grok"), ("minimax", "MiniMax"),
-    ("qoder", "Qoder"), ("qodercn", "Qoder CN"), ("codebuddy", "CodeBuddy"),
-    ("traecode", "TraeCode"), ("zcode", "ZCode"),
+    ("codex", "Codex"),
+    ("grok", "Grok"),
+    ("minimax", "MiniMax"),
+    ("qoder", "Qoder"),
+    ("qodercn", "Qoder CN"),
+    ("codebuddy", "CodeBuddy"),
+    ("traecode", "TraeCode"),
+    ("zcode", "ZCode"),
 ];

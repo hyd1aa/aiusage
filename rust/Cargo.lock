@@ -7,6 +7,7 @@ name = "aiusage-rs"
 version = "0.2.2"
 dependencies = [
  "chrono",
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
