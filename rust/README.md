@@ -37,8 +37,9 @@ tests. Demo never discovers providers or reads quota/authentication data.
 Manager/settings, diagnostics, explicit update/uninstall and an isolated Rust
 installer are now implemented. They do not invoke Python. The existing Python
 manager remains fully usable and installed entrypoints have not been changed.
-Native validation on all three release platforms and the full parity review
-remain pending. There is no published Rust release.
+Native Linux amd64, Linux arm64 and macOS arm64 CI has passed, including
+release-binary PTY checks. The final edge-case parity review remains pending.
+There is no published Rust release.
 
 The Rust updater expects an official release asset named
 `aiusage-vVERSION-linux-amd64`, `aiusage-vVERSION-linux-arm64` or
@@ -50,8 +51,9 @@ intentional distribution-format change, not a quota/config/UI change.
 The new `install.sh` in this directory is separate from the Python installer.
 Do not install into a production prefix before release gates have passed.
 
-Known parity-review work: broader malformed CLI/Unicode inputs, cancellation
-during slow provider I/O, concurrent manual/background refresh ordering and
-exact manager behavior. Passing the current tests is not full parity evidence.
+Known parity-review work: broader malformed CLI/Unicode inputs and live manager
+resize/encoding behavior. Slow provider cancellation and serialized manual
+refreshes are tested with owned synthetic processes. Passing the current tests
+is not full parity evidence.
 
 See [the migration audit and phase gates](../docs/rust-migration.md).

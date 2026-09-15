@@ -54,13 +54,41 @@ impl Default for Config {
 pub fn config_path() -> PathBuf {
     env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            env::var_os("HOME")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from("~"))
-                .join(".config")
-        })
+        .unwrap_or_else(|| home_dir().join(".config"))
         .join("aiusage/config.toml")
+}
+
+pub fn home_dir() -> PathBuf {
+    use std::{ffi::CStr, os::unix::ffi::OsStrExt};
+    if let Some(home) = env::var_os("HOME") {
+        return PathBuf::from(home);
+    }
+    // Like pathlib.Path.home()/expanduser: use the account database when HOME
+    // is absent. The reentrant API avoids sharing libc's static passwd buffer.
+    let mut capacity = 16384;
+    loop {
+        let mut bytes = vec![0u8; capacity];
+        let mut entry: libc::passwd = unsafe { std::mem::zeroed() };
+        let mut result = std::ptr::null_mut();
+        let status = unsafe {
+            libc::getpwuid_r(
+                libc::getuid(),
+                &mut entry,
+                bytes.as_mut_ptr().cast(),
+                bytes.len(),
+                &mut result,
+            )
+        };
+        if status == libc::ERANGE && capacity < 1048576 {
+            capacity *= 2;
+            continue;
+        }
+        if status == 0 && !result.is_null() && !entry.pw_dir.is_null() {
+            let value = unsafe { CStr::from_ptr(entry.pw_dir) };
+            return PathBuf::from(std::ffi::OsStr::from_bytes(value.to_bytes()));
+        }
+        return PathBuf::from("~");
+    }
 }
 
 pub fn valid(values: &[String]) -> Vec<String> {

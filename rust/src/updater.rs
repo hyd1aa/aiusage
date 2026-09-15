@@ -111,12 +111,7 @@ pub fn parse(payload: &Value) -> Result<ReleaseInfo, &'static str> {
 pub fn cache_path() -> PathBuf {
     env::var_os("XDG_CACHE_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            env::var_os("HOME")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from("~"))
-                .join(".cache")
-        })
+        .unwrap_or_else(|| crate::config::home_dir().join(".cache"))
         .join("aiusage/latest.json")
 }
 pub fn save_cache(info: &ReleaseInfo, path: &Path, now: f64) -> bool {

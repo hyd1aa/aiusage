@@ -2,6 +2,39 @@ use aiusage::cli;
 use std::process::Command;
 
 #[test]
+fn home_without_environment_matches_python() {
+    if std::env::var_os("AIUSAGE_TEST_HOME_FALLBACK").is_some() {
+        let expected = Command::new("python3")
+            .args(["-c", "import pathlib; print(pathlib.Path.home())"])
+            .output()
+            .unwrap();
+        assert!(expected.status.success());
+        assert_eq!(
+            aiusage::config::home_dir().to_string_lossy(),
+            String::from_utf8(expected.stdout).unwrap().trim_end()
+        );
+        assert_eq!(
+            aiusage::config::config_path(),
+            aiusage::config::home_dir().join(".config/aiusage/config.toml")
+        );
+        assert_eq!(
+            aiusage::updater::cache_path(),
+            aiusage::config::home_dir().join(".cache/aiusage/latest.json")
+        );
+        return;
+    }
+    let status = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "home_without_environment_matches_python"])
+        .env("AIUSAGE_TEST_HOME_FALLBACK", "1")
+        .env_remove("HOME")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("XDG_CACHE_HOME")
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+#[test]
 fn dimensions_and_parser_contract() {
     assert_eq!(cli::dimensions("80X24"), Ok((80, 24)));
     assert_eq!(cli::dimensions(" 80 x 24 "), Ok((80, 24)));
@@ -22,6 +55,12 @@ fn help_version_and_errors_match_python() {
         vec!["--help"],
         vec!["--version"],
         vec!["--bad"],
+        vec!["--"],
+        vec!["--", "--help"],
+        vec!["--size", "-1"],
+        vec!["--size", "-.5"],
+        vec!["--size", "-1."],
+        vec!["--demo", "--snapshot", "--size", "-1"],
         vec![],
         vec!["--size"],
         vec!["--demo", "--snapshot", "--size", "0x24"],

@@ -17,15 +17,23 @@ import time
 binary = sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
     for action in (b"q", b"\x1b", b"\x03", signal.SIGTERM, b"LTPZ\rq"):
+        ready_read, ready_write = os.pipe()
         pid, fd = pty.fork()
         if pid == 0:
+            os.close(ready_write)
+            os.read(ready_read, 1)
+            os.close(ready_read)
             env = {**os.environ, "HOME": directory, "XDG_CONFIG_HOME": directory, "TERM": "xterm-256color"}
             env.pop("COLUMNS", None)
             env.pop("LINES", None)
             os.execve(binary, [binary, "--demo"], env)
         try:
+            os.close(ready_read)
             fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
             before = termios.tcgetattr(fd)
+            # Capture the original settings before the child can enter cbreak.
+            os.write(ready_write, b"1")
+            os.close(ready_write)
             output = b""
             sent = False
             finished = False

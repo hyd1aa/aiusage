@@ -97,10 +97,18 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
   `--version`. Current local suite: 46 Rust tests; slow Codex reads can be
   cancelled and reaped, and manual/periodic reads share one worker to prevent
   response reordering. Manual refresh preserves periodic deadlines.
-- Next action: native CI/build verification, terminal edge cases and complete
-  parity review. No production install.
-- Outstanding parity review: arbitrary Unicode inputs, full argparse edge
-  cases, cancellation during slow provider I/O, and concurrent manual/worker
-  refresh ordering. Existing tests cover module behavior, not full equivalence.
+- Native matrix at `4d3b3d0` passed on Linux amd64, Linux arm64 and macOS arm64
+  (GitHub Actions Rust parity run `34917428145`); Python CI also passed.
+- Follow-up: argparse terminator/negative-argument compatibility, passwd home
+  fallback when HOME is unset, executable access checks, sanitized locale
+  diagnostics. A real PTY with an isolated fake Codex proves refresh
+  serialization. The PTY harness now synchronizes original termios capture
+  before child startup, avoiding a test-only race. Full Rust suite: 48 tests.
+- Next action: verify the follow-up commit in the native matrix, then continue
+  the final parity review. No production install.
+- Outstanding parity review: arbitrary Unicode inputs (Python Unicode decimal
+  digits versus ASCII timezone parsing), full argparse edge cases, live manager
+  resize/encoding detection. Existing tests cover module behavior, not full
+  equivalence. Provider cancellation and serialized refresh now have tests.
 - No release, tag, production installation, or Python removal is authorized
   by this checkpoint. Python remains the current production implementation.

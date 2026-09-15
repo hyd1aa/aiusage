@@ -9,7 +9,7 @@ use std::{
     env,
     fs::{self, File},
     io::{BufRead, BufReader, Seek, SeekFrom, Write},
-    os::unix::fs::PermissionsExt,
+    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::mpsc,
@@ -48,7 +48,9 @@ pub fn which(name: &str) -> Option<PathBuf> {
     env::split_paths(&env::var_os("PATH").unwrap_or_default())
         .map(|p| p.join(name))
         .find(|path| {
-            fs::metadata(path).is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            fs::metadata(path).is_ok_and(|m| m.is_file())
+                && std::ffi::CString::new(path.as_os_str().as_bytes())
+                    .is_ok_and(|value| unsafe { libc::access(value.as_ptr(), libc::X_OK) == 0 })
         })
 }
 pub fn installed(key: &str) -> bool {
@@ -65,9 +67,7 @@ pub fn installed(key: &str) -> bool {
     commands.iter().any(|command| which(command).is_some())
 }
 fn home() -> PathBuf {
-    env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("~"))
+    crate::config::home_dir()
 }
 pub fn grok_log() -> PathBuf {
     home().join(".grok/logs/unified.jsonl")

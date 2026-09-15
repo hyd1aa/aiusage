@@ -5,13 +5,14 @@ pub fn collect(cfg: &Config, github_ok: Option<bool>) -> Vec<Row> {
         .or_else(|_| std::env::var("LC_CTYPE"))
         .or_else(|_| std::env::var("LANG"))
         .unwrap_or_default();
+    let utf8 = encoding.to_lowercase().replace('-', "").contains("utf8");
     let mut rows = vec![
         ("AIUsage".into(), true, format!("v{}", crate::VERSION)),
         ("Rust".into(), true, "native binary".into()),
         (
             "Terminal".into(),
-            encoding.to_lowercase().replace('-', "").contains("utf8"),
-            encoding,
+            utf8,
+            if utf8 { "UTF-8" } else { "unknown" }.into(),
         ),
         ("Config".into(), true, "readable".into()),
     ];

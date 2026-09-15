@@ -39,6 +39,10 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
     let mut unknown = vec![];
     while index < args.len() {
         let token = &args[index];
+        if token == "--" {
+            unknown.extend(args[index..].iter().cloned());
+            break;
+        }
         let (arg, assigned) = token
             .split_once('=')
             .map(|(a, b)| (a, Some(b)))
@@ -89,7 +93,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
                 } else {
                     index += 1;
                     args.get(index)
-                        .filter(|s| !s.starts_with('-'))
+                        .filter(|s| !s.starts_with('-') || negative_number(s))
                         .ok_or("argument --size: expected one argument")?
                         .clone()
                 };
@@ -103,6 +107,19 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
         return Err(format!("unrecognized arguments: {}", unknown.join(" ")));
     }
     Ok(Parsed::Args(parsed))
+}
+// argparse accepts negative decimal arguments, but not arbitrary option-like text.
+fn negative_number(value: &str) -> bool {
+    let Some(value) = value.strip_prefix('-') else {
+        return false;
+    };
+    if let Some((whole, fraction)) = value.split_once('.') {
+        whole.bytes().all(|c| c.is_ascii_digit())
+            && !fraction.is_empty()
+            && fraction.bytes().all(|c| c.is_ascii_digit())
+    } else {
+        !value.is_empty() && value.bytes().all(|c| c.is_ascii_digit())
+    }
 }
 pub fn dimensions(size: &str) -> Result<(usize, usize), &'static str> {
     if size.is_empty() {
