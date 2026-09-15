@@ -319,9 +319,16 @@ fn timestamp_and_epoch_boundaries() {
 }
 
 #[test]
-#[ignore = "Parity gate OPEN: select Python 3.10 or 3.11+ ISO acceptance contract; run explicitly with --ignored"]
-fn version_sensitive_iso_acceptance_gate() {
+fn python310_iso_acceptance_gate() {
     let cases: Vec<_> = [
+        "2026-09-15T12:30:45.1+00:00",
+        "2026-09-15T12:30:45.12+00:00",
+        "2026-09-15T12:30:45.123+00:00",
+        "2026-09-15T12:30:45.1234+00:00",
+        "2026-09-15T12:30:45.12345+00:00",
+        "2026-09-15T12:30:45.123456+00:00",
+        "2026-09-15T12:30:45.1234567+00:00",
+        "2026-09-15T12:30:45.12345678+00:00",
         "2026-09-15T12:30:45.123456789+00:00",
         "20260915T12:30:45+00:00",
         "2026-W38-2T12:30:45+00:00",
@@ -422,6 +429,9 @@ fn fixed_timezone_differential() {
             "UTC+٠٥:٤٥",
             "UTC-𝟎𝟒",
             "UTC+⁰⁸",
+            "UTC+𑽐𑽘",
+            "UTC+𖫠𖫨",
+            "UTC+𞓰𞓘",
         ]
         .map(String::from),
     );

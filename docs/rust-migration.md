@@ -21,14 +21,12 @@ This document is the existing checkpoint; do not restart the migration.
 | Timestamp common/boundary formats | New isolated-TZ oracle matrix; fixed hour/minute precision, leap-second rejection, microsecond carry and Python year 1..9999 limits before/after conversion. |
 | Menu / diagnostics | UTF-8 bytes compared with real Python TextIOWrapper in zh/en at 10/20/39/40/80 columns; live width already tested. Diagnostics tested with empty synthetic PATH/HOME and a redaction canary. Rust identifies its runtime honestly. |
 | Providers / updater | Existing Grok fixtures retained; 54 new Codex reply cases use a fake Python Popen/select, never a real account. Version tuple comparison now preserves signed/Unicode integers. Verified binary assets intentionally replace Python source archives. |
-| ISO parser version-specific behavior | **OPEN**: Python 3.10 rejects nine fractional digits; Python 3.11+ accepts/truncates them and adds basic/week date syntax. One explicit ignored gate retains these cases. It was run manually and failed on Python 3.10 (Rust accepts nine digits). Not a passing gate. |
+| ISO parser version-specific behavior | Closed against the canonical Python 3.10 oracle: fractions 1–9 and basic/week/comma forms are tested, with only Python 3.10-supported forms accepted. Python 3.11+ differences remain documented. |
 | Native release artifacts | Previous head verified on all three native runners; follow-up CI required for this patch. No install, main merge, tag or release. |
 
-Current local result: **57 passed, 1 explicitly ignored/open gate**; clippy
-and fmt pass. The open test is `version_sensitive_iso_acceptance_gate` and is
-run with `cargo test --test compatibility version_sensitive_iso_acceptance_gate
--- --ignored --nocapture`. Standard CI green must never be described as full
-parity while it remains open.
+Current local result after the oracle decision: **58 passed, 0 ignored**;
+clippy and fmt pass. Python reference regression remains 131/131. Native CI
+must pass at the follow-up commit before the platform gate is closed.
 
 CI follow-up at `635a151`: all Python regressions passed, but its sensitive
 scan misidentified a four-component test version as an IPv4 address. The
@@ -42,10 +40,12 @@ Python **3.12.14**. The normal CLI differential tests remain strict and CI
 therefore remains red until the reference contract is chosen. Do not suppress
 this failure or report the parity gate as green.
 
-Next action: resolve the reference-version choice (exact current environment
-Python 3.10.12 recommended; Python 3.12.14 alternative), implement its CLI and
-ISO acceptance contract, remove the ISO ignore, add matching reference-version
-CI coverage, and rerun the gates. Never silently drop the divergent fixtures.
+Resolution: Python 3.10 is the canonical migration oracle because it is the
+project's minimum supported version and the audited local reference runtime.
+Rust CI now pins 3.10 for differential behavior while the unchanged Python CI
+continues to exercise 3.10–3.13. The ISO gate is no longer ignored: it checks
+all fractional lengths 1–9 plus basic/week/comma forms, preserving evidence of
+the broader Python 3.11+ grammar without making Rust behavior runner-dependent.
 
 Known scope notes: Rust emits UTF-8 independently of Python-only encoding
 environment flags; arbitrary legacy-codepage transcoding is not validated.
@@ -161,14 +161,16 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
 - Follow-up native matrix `34918015234` passed all three platforms at
   `aa694ad`; Python CI `34918015206` passed too. Its arm64 musl binary passed
   both PTY harnesses locally and has no dynamic section.
-- Final review follow-up adds Unicode decimal timezone digits (Unicode 15
+- Final review follow-up adds Unicode decimal timezone digits (Python 3.10's Unicode 13
   blocks, tested against fullwidth/Arabic/mathematical input) and live manager
   width checks. The Python reference truncates without ellipsis; the resize
   test asserts that exact behavior. Full Rust suite: 49 test functions.
-- Next action: verify this review follow-up in native CI, then audit remaining
-  malformed CLI/ISO timestamp inputs and manager output-encoding behavior.
-  No production install or promotion yet. Existing tests establish the covered
-  contracts, not equivalence for every possible input. Provider cancellation,
-  serialized refresh and live menu width now have explicit tests.
+- Final parity review adds a 702-case argparse matrix, Unicode/malformed size
+  parsing, timestamp and year/microsecond boundaries, active Python 3.10 ISO
+  grammar gate, 54 Codex reply cases, version comparison, UTF-8 zh/en menu bytes
+  and sanitized diagnostics. Intentional limits are recorded above.
+- Next action: native CI and final static artifact verification for the latest
+  commit. No production install or promotion yet. Provider cancellation,
+  serialized refresh and live menu width have explicit tests.
 - No release, tag, production installation, or Python removal is authorized
   by this checkpoint. Python remains the current production implementation.

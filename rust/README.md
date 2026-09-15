@@ -51,18 +51,18 @@ intentional distribution-format change, not a quota/config/UI change.
 The new `install.sh` in this directory is separate from the Python installer.
 Do not install into a production prefix before release gates have passed.
 
-Known parity-review work: broader malformed CLI/ISO timestamp inputs and manager
-output-encoding behavior. Unicode decimal timezones and live manager width are
-covered; slow provider cancellation and serialized manual refreshes are tested
-with owned synthetic processes. Passing the current tests is not full parity
-evidence.
+The canonical Python 3.10 parity review now covers malformed CLI/ISO timestamp
+inputs, UTF-8 zh/en menu bytes, Unicode decimal timezones and live manager
+width. Slow provider cancellation and serialized manual refreshes use owned
+synthetic processes. Legacy non-UTF-8 transcoding and unbounded Python integers
+remain documented limits rather than release blockers.
 
-Latest checkpoint: 57 tests pass and one **explicit ISO-version parity gate is
-open/ignored** in the ordinary suite. It fails when run explicitly against
-Python 3.10. Python 3.10 and 3.11+ disagree on accepted ISO forms; the reference
-version must be selected before closing this gate. UTF-8 menu bytes, CLI error
-ordering, Unicode dimension inputs and common timestamp boundaries now have
-additional differential tests. Do not interpret green ordinary CI as permission
-to replace Python or publish Rust.
+Python 3.10 is the canonical differential oracle: it is the minimum supported
+version and the audited local reference runtime. Python 3.11+ differs in
+argparse action ordering and accepts a broader ISO grammar, so native Rust CI
+pins 3.10 while the unchanged Python suite still runs on 3.10–3.13. The ISO
+gate is active, not ignored. UTF-8 menu bytes, CLI error ordering, Unicode
+dimension inputs and timestamp boundaries have differential tests. Green CI
+still does not itself authorize replacing Python or publishing Rust.
 
 See [the migration audit and phase gates](../docs/rust-migration.md).

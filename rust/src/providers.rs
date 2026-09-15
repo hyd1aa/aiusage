@@ -133,6 +133,18 @@ pub fn timestamp(value: &Value) -> Option<f64> {
         return Some(n);
     }
     let mut text = value.as_str()?.replace('Z', "+00:00");
+    // Python 3.10 is the migration oracle. Its fromisoformat accepts
+    // fractional seconds only at millisecond or microsecond precision;
+    // Python 3.11+ deliberately accepts a broader grammar.
+    for (index, _) in text.match_indices('.') {
+        let digits = text[index + 1..]
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .count();
+        if !matches!(digits, 3 | 6) {
+            return None;
+        }
+    }
     // fromisoformat accepts a time specified to the hour or minute.
     if text.len() >= 13 && text.is_char_boundary(10) && text.is_char_boundary(11) {
         let end = text[11..]
