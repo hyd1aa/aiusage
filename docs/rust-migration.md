@@ -90,6 +90,13 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
 - Added independent native CI for Linux amd64, Linux arm64 and macOS arm64,
   including musl release builds on Linux and PTY tests of release artifacts.
   CI uploads review artifacts only, never tags or GitHub Releases.
+- First native macOS arm64 CI passed tests, build and release PTY checks.
+  Linux CI invocation initially used the Rust working directory for reference
+  tests; corrected it to repository root without modifying Python tests.
+- Linux arm64 musl binary built locally with no dynamic section and verified
+  `--version`. Current local suite: 46 Rust tests; slow Codex reads can be
+  cancelled and reaped, and manual/periodic reads share one worker to prevent
+  response reordering. Manual refresh preserves periodic deadlines.
 - Next action: native CI/build verification, terminal edge cases and complete
   parity review. No production install.
 - Outstanding parity review: arbitrary Unicode inputs, full argparse edge

@@ -300,28 +300,38 @@ pub fn interactive(board: Dashboard) -> io::Result<()> {
     let origin = Instant::now();
     let worker_board = board.clone();
     let worker_stop = stop.clone();
+    // All usage reads share one worker. Key-triggered refreshes cannot race a
+    // periodic read and overwrite a newer quota with an older response.
+    let (requests, receiver) = std::sync::mpsc::channel::<Option<bool>>();
     let worker = thread::spawn(move || {
         let mut cadence = crate::cadence::Cadence::default();
+        let mut manual = None;
         loop {
-            let mut local = worker_board.lock().unwrap().clone();
-            let original_config = local.cfg.clone();
-            let discover_now = cadence.discovery_due(origin.elapsed().as_secs_f64());
-            let discovered = discover_now && !local.demo && local.cfg.auto_discover;
-            if discovered {
-                local.apply_discovery(providers::discover_all(), origin.elapsed().as_secs_f64());
+            if worker_stop.load(Ordering::Relaxed) {
+                return;
             }
-            refresh(&mut local, false, origin.elapsed().as_secs_f64());
+            let mut local = worker_board.lock().unwrap().clone();
+            let discover_now =
+                manual.unwrap_or_else(|| cadence.discovery_due(origin.elapsed().as_secs_f64()));
+            let discovered = discover_now && !local.demo && local.cfg.auto_discover;
+            let mut discovery = None;
+            if discovered {
+                let results = providers::discover_all();
+                local.apply_discovery(results.clone(), origin.elapsed().as_secs_f64());
+                discovery = Some(results);
+            }
+            local.refresh_with(now(), |key| providers::read_cancellable(key, &worker_stop));
+            if worker_stop.load(Ordering::Relaxed) {
+                return;
+            }
             {
                 let mut board = worker_board.lock().unwrap();
                 // Never replace concurrent user edits with the worker's old config.
                 let enabled = local.enabled().to_vec();
-                if board.cfg == original_config {
-                    if board.cfg != local.cfg {
-                        config::save(&local.cfg, &config::config_path());
+                if let Some(results) = discovery {
+                    if board.apply_discovery(results, origin.elapsed().as_secs_f64()) {
+                        config::save(&board.cfg, &config::config_path());
                     }
-                    board.cfg = local.cfg.clone();
-                    board.notice = local.notice;
-                    board.notice_until = local.notice_until;
                 }
                 board.apply_refresh(
                     local
@@ -331,17 +341,17 @@ pub fn interactive(board: Dashboard) -> io::Result<()> {
                         .collect(),
                     now(),
                 );
-                board.discovery_states = local.discovery_states;
             }
-            cadence.completed(origin.elapsed().as_secs_f64(), discover_now);
-            while !cadence.refresh_due(origin.elapsed().as_secs_f64()) {
-                if worker_stop.load(Ordering::Relaxed) {
-                    return;
-                }
-                thread::sleep(Duration::from_millis(50));
+            // Manual R does not reset the independent periodic deadlines.
+            if manual.is_none() {
+                cadence.completed(origin.elapsed().as_secs_f64(), discover_now);
             }
-            if worker_stop.load(Ordering::Relaxed) {
-                return;
+            let remaining = (cadence.next_refresh - origin.elapsed().as_secs_f64()).max(0.0);
+            match receiver.recv_timeout(Duration::from_secs_f64(remaining)) {
+                Ok(Some(discover)) => manual = Some(discover),
+                Ok(None) => return,
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => manual = None,
+                Err(_) => return,
             }
         }
     });
@@ -377,13 +387,14 @@ pub fn interactive(board: Dashboard) -> io::Result<()> {
                     break;
                 }
                 if effects.refresh {
-                    refresh(&mut board, effects.discover, origin.elapsed().as_secs_f64());
+                    let _ = requests.send(Some(effects.discover));
                 }
             }
         }
         Ok(())
     })();
     stop.store(true, Ordering::Relaxed);
+    let _ = requests.send(None);
     let _ = worker.join();
     result
 }

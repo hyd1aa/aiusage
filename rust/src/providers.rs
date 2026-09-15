@@ -238,6 +238,20 @@ pub fn codex_windows(reply: &Value) -> Result<Vec<RateLimitWindow>, String> {
     }
 }
 pub fn read_codex(executable: &Path, timeout: Duration) -> Result<Vec<RateLimitWindow>, String> {
+    read_codex_cancellable(
+        executable,
+        timeout,
+        &std::sync::atomic::AtomicBool::new(false),
+    )
+}
+pub fn read_codex_cancellable(
+    executable: &Path,
+    timeout: Duration,
+    cancel: &std::sync::atomic::AtomicBool,
+) -> Result<Vec<RateLimitWindow>, String> {
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("usage read cancelled".into());
+    }
     let mut child = Command::new(executable)
         .args(["app-server", "--stdio"])
         .stdin(Stdio::piped())
@@ -267,9 +281,21 @@ pub fn read_codex(executable: &Path, timeout: Duration) -> Result<Vec<RateLimitW
         };
         let response = |id: i32| -> Result<Value, String> {
             loop {
-                let item = rx
-                    .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                    .map_err(|_| "Codex usage timeout")?;
+                if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                    return Err("usage read cancelled".into());
+                }
+                if Instant::now() >= deadline {
+                    return Err("Codex usage timeout".into());
+                }
+                let item = match rx.recv_timeout(
+                    deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(Duration::from_millis(50)),
+                ) {
+                    Ok(item) => item,
+                    Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                    Err(_) => return Err("Codex usage timeout".into()),
+                };
                 if item["id"] == id {
                     return Ok(item);
                 }
@@ -311,6 +337,9 @@ pub fn read_codex(executable: &Path, timeout: Duration) -> Result<Vec<RateLimitW
     result
 }
 pub fn read(key: &str) -> ProviderUsage {
+    read_cancellable(key, &std::sync::atomic::AtomicBool::new(false))
+}
+pub fn read_cancellable(key: &str, cancel: &std::sync::atomic::AtomicBool) -> ProviderUsage {
     let name = PROVIDERS
         .iter()
         .find(|(k, _)| *k == key)
@@ -331,7 +360,13 @@ pub fn read(key: &str) -> ProviderUsage {
     let result = match key {
         "codex" => which("codex")
             .ok_or("Codex is not installed".into())
-            .and_then(|exe| read_codex(&exe, Duration::from_secs(crate::CODEX_TIMEOUT_SECONDS))),
+            .and_then(|exe| {
+                read_codex_cancellable(
+                    &exe,
+                    Duration::from_secs(crate::CODEX_TIMEOUT_SECONDS),
+                    cancel,
+                )
+            }),
         "grok" => read_grok(&grok_log()),
         _ => {
             usage.availability = Availability::NotSupported;

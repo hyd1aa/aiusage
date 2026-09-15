@@ -65,3 +65,25 @@ fn codex_protocol_and_timeout_use_owned_fake_process() {
     assert!(read_codex(&path, Duration::from_millis(50)).is_err());
     assert!(start.elapsed() < Duration::from_secs(2));
 }
+
+#[test]
+fn cancellation_reaps_slow_owned_codex_without_waiting_eight_seconds() {
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("slow-codex");
+    fs::write(&path, "#!/bin/sh\nread init\nread never\n").unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+    let cancel = Arc::new(AtomicBool::new(false));
+    let trigger = cancel.clone();
+    let thread = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(50));
+        trigger.store(true, Ordering::Relaxed);
+    });
+    let start = Instant::now();
+    assert!(read_codex_cancellable(&path, Duration::from_secs(8), &cancel).is_err());
+    assert!(start.elapsed() < Duration::from_secs(2));
+    thread.join().unwrap();
+}
