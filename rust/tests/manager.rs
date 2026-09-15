@@ -121,3 +121,17 @@ fn diagnostics_safe_output() {
         assert!(!output.to_lowercase().contains(forbidden));
     }
 }
+
+#[test]
+fn manager_rechecks_terminal_width_before_each_write() {
+    let mut menu = manager("");
+    menu.width = 80;
+    menu.live_width = Some(|| 12);
+    menu.write("abcdefghijklmnopqrst", false).unwrap();
+    menu.live_width = Some(|| 16);
+    menu.write("abcdefghijklmnopqrst", false).unwrap();
+    assert_eq!(
+        String::from_utf8(menu.output).unwrap(),
+        "abcdefghijkl\nabcdefghijklmnop\n"
+    );
+}

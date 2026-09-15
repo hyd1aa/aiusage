@@ -98,6 +98,7 @@ pub struct Manager<I: BufRead, O: Write, A: Actions> {
     pub color: bool,
     pub unicode: bool,
     pub width: usize,
+    pub live_width: Option<fn() -> usize>,
     pub config_path: PathBuf,
 }
 impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
@@ -112,6 +113,7 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
             color: false,
             unicode: true,
             width: 80,
+            live_width: None,
             config_path: config::config_path(),
         }
     }
@@ -123,6 +125,9 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
         }
     }
     pub fn write(&mut self, value: &str, accent: bool) -> io::Result<()> {
+        if let Some(width) = self.live_width {
+            self.width = width();
+        }
         let rows: Vec<_> = if value.is_empty() {
             vec![""]
         } else {
@@ -625,6 +630,7 @@ pub fn main() -> i32 {
     );
     manager.latest = updater::cached_latest();
     manager.width = crate::cli::terminal_size().0;
+    manager.live_width = Some(|| crate::cli::terminal_size().0);
     manager.color = io::stdout().is_terminal()
         && std::env::var_os("NO_COLOR").is_none()
         && std::env::var("TERM").unwrap_or_default() != "dumb";

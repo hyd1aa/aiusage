@@ -104,11 +104,17 @@ alongside differential tests so shared fixture mistakes cannot prove parity.
   diagnostics. A real PTY with an isolated fake Codex proves refresh
   serialization. The PTY harness now synchronizes original termios capture
   before child startup, avoiding a test-only race. Full Rust suite: 48 tests.
-- Next action: verify the follow-up commit in the native matrix, then continue
-  the final parity review. No production install.
-- Outstanding parity review: arbitrary Unicode inputs (Python Unicode decimal
-  digits versus ASCII timezone parsing), full argparse edge cases, live manager
-  resize/encoding detection. Existing tests cover module behavior, not full
-  equivalence. Provider cancellation and serialized refresh now have tests.
+- Follow-up native matrix `34918015234` passed all three platforms at
+  `aa694ad`; Python CI `34918015206` passed too. Its arm64 musl binary passed
+  both PTY harnesses locally and has no dynamic section.
+- Final review follow-up adds Unicode decimal timezone digits (Unicode 15
+  blocks, tested against fullwidth/Arabic/mathematical input) and live manager
+  width checks. The Python reference truncates without ellipsis; the resize
+  test asserts that exact behavior. Full Rust suite: 49 test functions.
+- Next action: verify this review follow-up in native CI, then audit remaining
+  malformed CLI/ISO timestamp inputs and manager output-encoding behavior.
+  No production install or promotion yet. Existing tests establish the covered
+  contracts, not equivalence for every possible input. Provider cancellation,
+  serialized refresh and live menu width now have explicit tests.
 - No release, tag, production installation, or Python removal is authorized
   by this checkpoint. Python remains the current production implementation.

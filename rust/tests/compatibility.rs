@@ -112,6 +112,10 @@ fn fixed_timezone_differential() {
             "UTC-12:01",
             "UTC+05:60",
             "Asia/Shanghai",
+            "UTC+０８",
+            "UTC+٠٥:٤٥",
+            "UTC-𝟎𝟒",
+            "UTC+⁰⁸",
         ]
         .map(String::from),
     );

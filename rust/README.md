@@ -51,9 +51,10 @@ intentional distribution-format change, not a quota/config/UI change.
 The new `install.sh` in this directory is separate from the Python installer.
 Do not install into a production prefix before release gates have passed.
 
-Known parity-review work: broader malformed CLI/Unicode inputs and live manager
-resize/encoding behavior. Slow provider cancellation and serialized manual
-refreshes are tested with owned synthetic processes. Passing the current tests
-is not full parity evidence.
+Known parity-review work: broader malformed CLI/ISO timestamp inputs and manager
+output-encoding behavior. Unicode decimal timezones and live manager width are
+covered; slow provider cancellation and serialized manual refreshes are tested
+with owned synthetic processes. Passing the current tests is not full parity
+evidence.
 
 See [the migration audit and phase gates](../docs/rust-migration.md).
