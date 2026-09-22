@@ -75,16 +75,16 @@ v0.3.0 起，正式发布是 Rust 二进制。从
 [GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest)
 下载对应平台文件：
 
-- `aiusage-v0.3.0-linux-amd64`（static musl）
-- `aiusage-v0.3.0-linux-arm64`（static musl）
-- `aiusage-v0.3.0-macos-arm64`
+- `aiusage-v0.3.1-linux-amd64`（static musl）
+- `aiusage-v0.3.1-linux-arm64`（static musl）
+- `aiusage-v0.3.1-macos-arm64`
 
 然后：
 
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.1-linux-arm64 ./install.sh
 ai
 ```
 

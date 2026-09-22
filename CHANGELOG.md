@@ -5,19 +5,6 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-### Removed
-
-- Retired the legacy Python implementation, launchers, packaging, rollback
-  runtime, and Python CI after the Rust v0.3.0 production soak.
-- Replaced runtime differential tests with frozen golden fixtures and native
-  Rust PTY, regression, installer, updater, and sensitive-data tests.
-
-### Changed
-
-- Cargo package metadata is now the sole version source for the runtime,
-  diagnostics, updater, installer validation, CI, and release builds.
-- The repository-root installer now installs only the verified Rust binary.
-
 ### Added
 
 - Added a bounded Provider discovery contract with installation, readiness,
@@ -36,6 +23,38 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 - Diagnostics now report sanitized discovery states for every Provider.
 - Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
   enabled, demo, disabled, and ordering configuration.
+
+## [0.3.1] - 2026-09-22
+
+Rust-only maintenance release. This is not a new feature release. v0.3.0
+installs upgrade directly, and user configuration stays compatible.
+
+### Removed
+
+- Retired the legacy Python implementation, launchers, packaging, rollback
+  runtime, and Python CI after the Rust v0.3.0 production soak.
+- Replaced runtime differential tests with frozen golden fixtures and native
+  Rust PTY, regression, installer, updater, and sensitive-data tests.
+
+### Changed
+
+- Cargo package metadata is now the sole version source for the runtime,
+  diagnostics, updater, installer validation, CI, and release builds.
+- The repository, CI, and packaging are Rust-only. Supported release
+  platforms remain Linux amd64 (stripped musl), Linux arm64 (stripped musl),
+  and macOS arm64 (self-contained, linking OS libraries).
+- The repository-root installer installs only a verified Rust binary.
+  Ownership checks and the atomic publish path were hardened.
+- PTY tests now use a portable terminal size so the same cleanup checks run
+  on macOS and Linux.
+- Frozen golden fixtures keep the same behavior checks. Only the embedded
+  version label moved from 0.3.0 to 0.3.1.
+
+### Compatibility
+
+- Frozen golden fixtures remain the compatibility protection for CLI, menu,
+  CODEX, GROK, timestamp, timezone, and Dashboard behavior.
+- User configuration from 0.2.2 and 0.3.0 is unchanged by this release.
 
 ## [0.3.0] - 2026-09-15
 

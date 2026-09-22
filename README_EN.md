@@ -97,16 +97,16 @@ From v0.3.0 the published runtime is a Rust binary. Download the file for
 your platform from the
 [GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest):
 
-- `aiusage-v0.3.0-linux-amd64` (static musl)
-- `aiusage-v0.3.0-linux-arm64` (static musl)
-- `aiusage-v0.3.0-macos-arm64`
+- `aiusage-v0.3.1-linux-amd64` (static musl)
+- `aiusage-v0.3.1-linux-arm64` (static musl)
+- `aiusage-v0.3.1-macos-arm64`
 
 Then:
 
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.1-linux-arm64 ./install.sh
 ai
 ```
 
