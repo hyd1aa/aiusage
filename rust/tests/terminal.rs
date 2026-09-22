@@ -107,6 +107,11 @@ enum ExitAction {
     Signal(i32),
 }
 
+fn binary() -> std::ffi::OsString {
+    std::env::var_os("AIUSAGE_TEST_BINARY")
+        .unwrap_or_else(|| std::ffi::OsString::from(env!("CARGO_BIN_EXE_aiusage")))
+}
+
 #[test]
 fn actual_pty_cleanup() {
     for (name, action) in [
@@ -119,7 +124,7 @@ fn actual_pty_cleanup() {
         let home = tempfile::tempdir().unwrap();
         let mut pty = Pty::open();
         let before = pty.termios();
-        let mut command = Command::new(env!("CARGO_BIN_EXE_aiusage"));
+        let mut command = Command::new(binary());
         command
             .arg("--demo")
             .env("HOME", home.path())
@@ -194,7 +199,7 @@ printf '%s\n' '{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":47,"wind
     let log = root.path().join("calls");
 
     let mut pty = Pty::open();
-    let mut command = Command::new(env!("CARGO_BIN_EXE_aiusage"));
+    let mut command = Command::new(binary());
     command
         .env("HOME", root.path())
         .env("XDG_CONFIG_HOME", root.path())

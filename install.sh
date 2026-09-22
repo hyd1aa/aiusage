@@ -19,21 +19,19 @@ ensure_dir() {
 
 owned_launcher() {
     [ -L "$1" ] && [ "$(readlink "$1")" = '../lib/aiusage/aiusage' ] &&
-        [ -f "$PACKAGE/.aiusage-rust-owned" ] && return 0
-    # Permit the one-time replacement of an AIUsage-owned legacy launcher.
-    [ -f "$1" ] && grep -q "$2" "$1" 2>/dev/null
+        [ -f "$PACKAGE/.aiusage-rust-owned" ]
 }
 
 if [ ! -f "$BINARY" ] || [ ! -x "$BINARY" ]; then
     echo 'Error: build or supply a verified AIUsage Rust binary first.' >&2
     exit 1
 fi
-if [ -L "$PACKAGE" ] || { [ -e "$PACKAGE" ] && ! { [ -d "$PACKAGE" ] && [ -f "$PACKAGE/.aiusage-owned" ]; }; }; then
+if [ -L "$PACKAGE" ] || { [ -e "$PACKAGE" ] && ! { [ -d "$PACKAGE" ] && [ -f "$PACKAGE/.aiusage-rust-owned" ]; }; }; then
     echo 'Error: package path is not managed by AIUsage.' >&2
     exit 1
 fi
 if { [ -e "$BINDIR/aiusage" ] || [ -L "$BINDIR/aiusage" ]; } &&
-    ! owned_launcher "$BINDIR/aiusage" 'aiusage.cli'; then
+    ! owned_launcher "$BINDIR/aiusage"; then
     echo 'Error: aiusage command is not managed by AIUsage.' >&2
     exit 1
 fi
@@ -45,11 +43,11 @@ fi
 
 INSTALL_AI=1
 existing_ai=$(command -v ai 2>/dev/null || true)
-if [ -n "$existing_ai" ] && ! owned_launcher "$existing_ai" 'aiusage.manager'; then
+if [ -n "$existing_ai" ] && ! owned_launcher "$existing_ai"; then
     INSTALL_AI=0
 fi
 if { [ -e "$BINDIR/ai" ] || [ -L "$BINDIR/ai" ]; } &&
-    ! owned_launcher "$BINDIR/ai" 'aiusage.manager'; then
+    ! owned_launcher "$BINDIR/ai"; then
     INSTALL_AI=0
 fi
 
