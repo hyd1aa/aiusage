@@ -18,20 +18,21 @@ impl Pty {
     fn open() -> Self {
         let mut master = -1;
         let mut slave = -1;
-        let size = libc::winsize {
+        let mut size = libc::winsize {
             ws_row: 24,
             ws_col: 80,
             ws_xpixel: 0,
             ws_ypixel: 0,
         };
+        let size_pointer: *mut libc::winsize = &mut size;
         assert_eq!(
             unsafe {
                 libc::openpty(
                     &mut master,
                     &mut slave,
                     std::ptr::null_mut(),
-                    std::ptr::null(),
-                    &size,
+                    std::ptr::null_mut(),
+                    size_pointer,
                 )
             },
             0,
@@ -48,7 +49,7 @@ impl Pty {
         let slave = self.slave.take().unwrap();
         unsafe {
             command.pre_exec(|| {
-                if libc::setsid() < 0 || libc::ioctl(0, libc::TIOCSCTTY, 0) < 0 {
+                if libc::setsid() < 0 || libc::ioctl(0, libc::TIOCSCTTY as libc::c_ulong, 0) < 0 {
                     return Err(io::Error::last_os_error());
                 }
                 Ok(())
