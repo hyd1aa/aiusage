@@ -50,7 +50,6 @@ impl Actions for Production {
         crate::cli::main(if demo { vec!["--demo".into()] } else { vec![] });
     }
     fn install(&mut self, info: &ReleaseInfo) -> Result<String, String> {
-        // Preserve the reference updater's default installation prefix.
         updater::install_release(info, crate::VERSION, std::path::Path::new("/usr/local"))
             .map_err(String::from)
     }
@@ -407,7 +406,7 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
             };
             self.write(&format!("{}. {label}", index + 1), false)?;
         }
-        let Some(index) = python_index(&self.choice()?, options.len()) else {
+        let Some(index) = menu_index(&self.choice()?, options.len()) else {
             return Ok(());
         };
         let selected = if options[index] == "custom" {
@@ -471,7 +470,7 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
                 return Ok(());
             }
             let direction = choice.starts_with('u') || choice.starts_with('d');
-            let Some(index) = python_index(
+            let Some(index) = menu_index(
                 if direction { &choice[1..] } else { &choice },
                 PROVIDERS.len(),
             ) else {
@@ -565,8 +564,8 @@ impl<I: BufRead, O: Write, A: Actions> Manager<I, O, A> {
         Ok(true)
     }
 }
-fn python_index(value: &str, len: usize) -> Option<usize> {
-    let index = crate::cli::python_integer(value)?.checked_sub(1)?;
+fn menu_index(value: &str, len: usize) -> Option<usize> {
+    let index = crate::cli::decimal_integer(value)?.checked_sub(1)?;
     let index = if index < 0 { len as i64 + index } else { index };
     if index < 0 || index >= len as i64 {
         None

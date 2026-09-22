@@ -133,9 +133,8 @@ pub fn timestamp(value: &Value) -> Option<f64> {
         return Some(n);
     }
     let mut text = value.as_str()?.replace('Z', "+00:00");
-    // Python 3.10 is the migration oracle. Its fromisoformat accepts
-    // fractional seconds only at millisecond or microsecond precision;
-    // Python 3.11+ deliberately accepts a broader grammar.
+    // The compatibility contract accepts fractional seconds only at
+    // millisecond or microsecond precision.
     for (index, _) in text.match_indices('.') {
         let digits = text[index + 1..]
             .chars()
@@ -158,7 +157,7 @@ pub fn timestamp(value: &Value) -> Option<f64> {
         }
     }
     let epoch = |value: DateTime<chrono::FixedOffset>| {
-        // chrono represents leap seconds; Python datetime rejects them.
+        // Quota timestamps reject leap seconds.
         (value.nanosecond() < 1_000_000_000)
             .then(|| value.timestamp() as f64 + value.timestamp_subsec_micros() as f64 / 1e6)
     };
@@ -181,7 +180,7 @@ pub fn timestamp(value: &Value) -> Option<f64> {
 }
 pub fn grok_window(config: &Value) -> Option<RateLimitWindow> {
     config.as_object()?;
-    // Python uses `or`: epoch zero falls back to the billing-period field.
+    // Epoch zero falls back to the billing-period field by contract.
     let reset = timestamp(&config["currentPeriod"]["end"])
         .filter(|v| *v != 0.0)
         .or_else(|| timestamp(&config["billingPeriodEnd"]))?;
@@ -344,8 +343,8 @@ pub fn read_codex_cancellable(
         codex_windows(&response(2)?)
     })();
     // Always reap our own helper, including malformed response and timeout.
-    // This PID is exclusively owned by this invocation. Match Python's
-    // graceful termination, bounded wait, then force termination as last resort.
+    // This PID is exclusively owned by this invocation. Use graceful
+    // termination, a bounded wait, then force termination as a last resort.
     unsafe {
         libc::kill(child.id() as libc::pid_t, libc::SIGTERM);
     }

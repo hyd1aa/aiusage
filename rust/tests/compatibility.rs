@@ -1,37 +1,22 @@
 use aiusage::{config, models::remaining_from_used, timezones};
 use serde_json::{json, Value};
-use std::{
-    io::Write,
-    process::{Command, Stdio},
-};
+use sha2::{Digest, Sha256};
+use std::{fs, process::Command};
 
 fn reference(cases: &[Value], tz: &str) -> Vec<Value> {
-    let home = tempfile::tempdir().unwrap();
-    let mut child = Command::new("python3")
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/reference.py"))
-        .env("TZ", tz)
-        .env("HOME", home.path())
-        .env("XDG_CONFIG_HOME", home.path())
-        .env("XDG_CACHE_HOME", home.path())
-        .env_remove("CODEX_API_KEY")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("Python reference required");
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(serde_json::to_vec(cases).unwrap().as_slice())
-        .unwrap();
-    let result = child.wait_with_output().unwrap();
-    assert!(
-        result.status.success(),
-        "{}",
-        String::from_utf8_lossy(&result.stderr)
+    let key = format!(
+        "{:x}",
+        Sha256::digest(serde_json::to_vec(&(tz, cases)).unwrap())
     );
-    serde_json::from_slice(&result.stdout).unwrap()
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/compatibility")
+        .join(format!("{key}.json"));
+    serde_json::from_slice(
+        &fs::read(&path).unwrap_or_else(|error| {
+            panic!("missing compatibility golden {}: {error}", path.display())
+        }),
+    )
+    .unwrap()
 }
 
 #[test]
@@ -88,7 +73,7 @@ fn argparse_edge_matrix() {
             }
         };
         if actual != expected {
-            differences.push(format!("{args:?}\nRust {actual}\nPython {expected}"));
+            differences.push(format!("{args:?}\nActual {actual}\nGolden {expected}"));
         }
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
@@ -312,14 +297,14 @@ fn timestamp_and_epoch_boundaries() {
             .map(|v| v.format("%Y-%m-%dT%H:%M:%S%.6f%:z").to_string()))
         };
         if actual != expected {
-            differences.push(format!("{case}: Rust={actual}, Python={expected}"));
+            differences.push(format!("{case}: actual={actual}, golden={expected}"));
         }
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
 
 #[test]
-fn python310_iso_acceptance_gate() {
+fn legacy_iso_acceptance_golden() {
     let cases: Vec<_> = [
         "2026-09-15T12:30:45.1+00:00",
         "2026-09-15T12:30:45.12+00:00",
@@ -341,7 +326,7 @@ fn python310_iso_acceptance_gate() {
     for (case, expected) in cases.iter().zip(reference(&cases, "UTC")) {
         let actual = json!(aiusage::providers::timestamp(&case["value"]));
         if actual != expected {
-            differences.push(format!("{case}: Rust={actual}, Python={expected}"));
+            differences.push(format!("{case}: actual={actual}, golden={expected}"));
         }
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
@@ -587,7 +572,7 @@ fn grok_differential() {
 #[test]
 fn system_timezone_differential() {
     // Each timezone gets its own process: never mutate TZ concurrently with
-    // chrono or Python calls in other tests. Cover winter/summer DST and halves.
+    // chrono calls in other tests. Cover winter/summer DST and half-hour zones.
     if let Ok(tz) = std::env::var("AIUSAGE_TEST_ZONE") {
         let cases: Vec<_> = [1767268800.0, 1782907200.0, 1788461400.0]
             .into_iter()

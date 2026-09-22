@@ -129,7 +129,7 @@ fn provider_lines(
                 &window.label
             };
             let label = fit(label, 6);
-            // Python's <6 pads by codepoints here, not terminal cells.
+            // Preserve the legacy formatter's six-codepoint padding.
             let label = format!(
                 "{label}{}",
                 " ".repeat(6usize.saturating_sub(label.chars().count()))

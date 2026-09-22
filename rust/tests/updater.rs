@@ -44,7 +44,7 @@ fn cache_compatible_private_and_expires() {
     assert!(!std::fs::read_to_string(path).unwrap().contains("assets"));
 }
 #[test]
-fn missing_binary_never_falls_back_to_python_installer() {
+fn missing_binary_has_no_source_fallback() {
     let info=parse(&json!({"tag_name":"v0.2.3","tarball_url":"https://github.com/hyd1aa/aiusage/archive/v0.2.3.tar.gz"})).unwrap();
     assert!(binary_asset(&info, "linux-arm64").is_err());
 }

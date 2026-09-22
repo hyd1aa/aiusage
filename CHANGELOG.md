@@ -5,6 +5,19 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- Retired the legacy Python implementation, launchers, packaging, rollback
+  runtime, and Python CI after the Rust v0.3.0 production soak.
+- Replaced runtime differential tests with frozen golden fixtures and native
+  Rust PTY, regression, installer, updater, and sensitive-data tests.
+
+### Changed
+
+- Cargo package metadata is now the sole version source for the runtime,
+  diagnostics, updater, installer validation, CI, and release builds.
+- The repository-root installer now installs only the verified Rust binary.
+
 ### Added
 
 - Added a bounded Provider discovery contract with installation, readiness,

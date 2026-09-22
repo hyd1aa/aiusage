@@ -1,4 +1,4 @@
-//! Official-release checks. Binary updates never fall back to installing Python.
+//! Official-release checks for verified native binaries.
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -34,7 +34,7 @@ pub struct ReleaseInfo {
 pub fn version_tuple(value: &str) -> Vec<i64> {
     value
         .split('.')
-        .map(crate::cli::python_integer)
+        .map(crate::cli::decimal_integer)
         .collect::<Option<_>>()
         .unwrap_or_default()
 }
@@ -122,8 +122,7 @@ pub fn save_cache(info: &ReleaseInfo, path: &Path, now: f64) -> bool {
             .recursive(true)
             .mode(0o700)
             .create(path.parent().unwrap_or(Path::new(".")))?;
-        // Keep the cache readable by the untouched Python reference. Assets are
-        // fetched again on explicit update and need not live in this cache.
+        // Assets are fetched again on explicit update and need not live in the cache.
         let value = json!({"version":info.version,"title":info.title,"notes":info.notes,"tarball_url":info.tarball_url,"checked_at":now});
         fs::write(&temp, serde_json::to_vec(&value)?)?;
         fs::set_permissions(&temp, fs::Permissions::from_mode(0o600))?;
@@ -250,8 +249,8 @@ pub fn install_release_with(
     }
     let installer = temp.path().join("install.sh");
     let uninstaller = temp.path().join("uninstall.sh");
-    fs::write(&installer, include_str!("../install.sh")).map_err(|_| "update staging failed")?;
-    fs::write(&uninstaller, include_str!("../uninstall.sh"))
+    fs::write(&installer, include_str!("../../install.sh")).map_err(|_| "update staging failed")?;
+    fs::write(&uninstaller, include_str!("../../uninstall.sh"))
         .map_err(|_| "update staging failed")?;
     let mut command = if prefix == Path::new("/usr/local") && unsafe { libc::geteuid() } != 0 {
         let mut cmd = Command::new("sudo");

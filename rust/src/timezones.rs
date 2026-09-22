@@ -10,10 +10,10 @@ pub enum Zone {
     Fixed(i32),
 }
 
-/// Unicode decimal digits, matching Python's `\d` / int for timezone input.
-/// Decimal blocks are contiguous groups of ten (Python 3.10 / Unicode 13,
-/// including the five mathematical styles). Unlike `is_numeric`, this excludes fractions
-/// and superscripts, which the reference also rejects.
+/// Unicode decimal digits accepted by the legacy timezone input contract.
+/// Decimal blocks are contiguous groups of ten from Unicode 13, including the
+/// five mathematical styles. Unlike `is_numeric`, this excludes fractions and
+/// superscripts.
 pub fn decimal_digit(value: char) -> Option<u32> {
     const ZEROES: &[u32] = &[
         0x30, 0x660, 0x6f0, 0x7c0, 0x966, 0x9e6, 0xa66, 0xae6, 0xb66, 0xbe6, 0xc66, 0xce6, 0xd66,
@@ -152,7 +152,7 @@ mod tests {
         }
     }
     #[test]
-    fn nonfinite_and_outside_python_years_are_rejected() {
+    fn nonfinite_and_outside_supported_years_are_rejected() {
         for epoch in [
             f64::NAN,
             f64::INFINITY,

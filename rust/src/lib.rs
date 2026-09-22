@@ -12,7 +12,7 @@ pub mod render;
 pub mod timezones;
 pub mod updater;
 
-pub const VERSION: &str = env!("AIUSAGE_VERSION");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const REFRESH_SECONDS: u64 = 30;
 pub const DISCOVERY_SECONDS: u64 = 300;
 pub const NOTICE_SECONDS: u64 = 5;

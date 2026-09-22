@@ -52,7 +52,7 @@ pub fn remaining_from_used(used: f64) -> Result<i32, &'static str> {
 mod tests {
     use super::*;
     #[test]
-    fn rounding_matches_python_not_rust_round() {
+    fn rounding_uses_ties_to_even_before_clamping() {
         for (used, expected) in [
             (0.0, 100),
             (100.0, 0),

@@ -1,37 +1,88 @@
-name: CI
+name: Rust CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  native:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            target: x86_64-unknown-linux-musl
+            platform: linux-amd64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            target: aarch64-unknown-linux-musl
+            platform: linux-arm64
+          - runner: macos-14
+            arch: arm64
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: rust
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install editable package
-        run: python -m pip install -e '.[dev]'
-      - name: Compile and import
+      - name: Verify native architecture and install pinned toolchain
         run: |
-          python -m compileall -q src tests tools
-          python -c "import aiusage; print(aiusage.__version__)"
-          python -m tabnanny src tests tools
-      - name: Offline unit and PTY tests
+          test "$(uname -m)" = '${{ matrix.arch }}'
+          rustup toolchain install 1.90.0 --profile minimal --component rustfmt,clippy
+          rustup target add --toolchain 1.90.0 '${{ matrix.target }}'
+      - name: Rust formatting, lint, regression, golden, PTY, and updater tests
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+      - name: Sensitive-data history scan
+        if: matrix.platform == 'linux-amd64'
+        run: cargo run --locked --example check_sensitive
+      - name: Install native musl compiler
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build and smoke-test self-contained application
         env:
-          NO_COLOR: "1"
-        run: python -m unittest discover -s tests -v
-      - name: Sensitive-pattern check
-        run: python tools/check_sensitive.py
-
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
+        run: |
+          cargo build --locked --release --bin aiusage --target '${{ matrix.target }}'
+          binary='target/${{ matrix.target }}/release/aiusage'
+          version=$(awk -F '"' '$1 ~ /^version = / { print $2; exit }' Cargo.toml)
+          test "$("$binary" --version)" = "AIUsage $version"
+          "$binary" --help
+          "$binary" --demo --snapshot --size 80x24
+          if [ '${{ runner.os }}' = 'Linux' ]; then
+            ! readelf -d "$binary" | grep NEEDED
+          else
+            otool -L "$binary"
+          fi
+      - name: Package native artifact
+        run: |
+          version=$(awk -F '"' '$1 ~ /^version = / { print $2; exit }' Cargo.toml)
+          package="aiusage-v$version-${{ matrix.platform }}"
+          mkdir -p "target/package/$package"
+          cp "target/${{ matrix.target }}/release/aiusage" "target/package/$package/"
+          cp ../install.sh ../uninstall.sh "target/package/$package/"
+          tar -C target/package -czf "target/$package.tar.gz" "$package"
+          shasum -a 256 "target/${{ matrix.target }}/release/aiusage" "target/$package.tar.gz"
+      - name: Upload binary and package
+        uses: actions/upload-artifact@v4
+        with:
+          name: aiusage-${{ matrix.platform }}
+          path: |
+            rust/target/${{ matrix.target }}/release/aiusage
+            rust/target/aiusage-v*-${{ matrix.platform }}.tar.gz
+          if-no-files-found: error

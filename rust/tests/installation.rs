@@ -13,7 +13,7 @@ fn metadata(path: &Path) -> (u32, u32, u32) {
 }
 fn install(prefix: &Path) -> std::process::Output {
     Command::new("sh")
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/install.sh"))
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../install.sh"))
         .env("PREFIX", prefix)
         .env("AIUSAGE_BINARY", env!("CARGO_BIN_EXE_aiusage"))
         .output()
@@ -75,6 +75,54 @@ fn lifecycle_preserves_shared_directory_metadata_and_third_party_ai() {
         assert!(!prefix.join("lib/aiusage").exists());
     }
 }
+
+#[test]
+fn legacy_owned_runtime_is_atomically_replaced() {
+    let temp = tempfile::tempdir().unwrap();
+    let prefix = prepare(temp.path(), 0o755, 0o755);
+    let package = prefix.join("lib/aiusage");
+    fs::create_dir(&package).unwrap();
+    fs::write(package.join(".aiusage-owned"), "").unwrap();
+    fs::write(package.join("cli.py"), "legacy runtime").unwrap();
+    fs::write(
+        prefix.join("bin/aiusage"),
+        "#!/bin/sh\n# retired aiusage.cli launcher\nexit 1\n",
+    )
+    .unwrap();
+    fs::write(
+        prefix.join("bin/ai"),
+        "#!/bin/sh\n# retired aiusage.manager launcher\nexit 1\n",
+    )
+    .unwrap();
+    fs::write(
+        prefix.join("lib/aiusage-uninstall.sh"),
+        "#!/bin/sh\necho 'AIUsage program files removed.'\n",
+    )
+    .unwrap();
+
+    let result = install(&prefix);
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(package.join(".aiusage-rust-owned").is_file());
+    assert!(package.join("aiusage").is_file());
+    assert!(!package.join("cli.py").exists());
+    assert_eq!(
+        fs::read_link(prefix.join("bin/aiusage")).unwrap(),
+        Path::new("../lib/aiusage/aiusage")
+    );
+    assert_eq!(
+        Command::new(prefix.join("bin/aiusage"))
+            .arg("--version")
+            .output()
+            .unwrap()
+            .stdout,
+        format!("AIUsage {}\n", aiusage::VERSION).as_bytes()
+    );
+}
+
 #[test]
 fn fresh_directories_and_reserved_paths() {
     let temp = tempfile::tempdir().unwrap();
@@ -174,7 +222,7 @@ fn publication_failure_restores_previous_owned_installation() {
     )))
     .unwrap();
     let result = Command::new("sh")
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/install.sh"))
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../install.sh"))
         .env("PREFIX", &prefix)
         .env("AIUSAGE_BINARY", env!("CARGO_BIN_EXE_aiusage"))
         .env("PATH", path)

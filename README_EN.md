@@ -2,7 +2,7 @@
 
 [![Latest Release](https://img.shields.io/github/v/release/hyd1aa/aiusage?label=release)](https://github.com/hyd1aa/aiusage/releases/latest)
 [![CI](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml/badge.svg)](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml)
-![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10%E2%80%933.13-blue)
+![Rust 1.90](https://img.shields.io/badge/Rust-1.90-orange)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [简体中文](README.md) | **English**
@@ -106,13 +106,13 @@ Then:
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./rust/install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./install.sh
 ai
 ```
 
-User configuration remains compatible with 0.2.2. The repository-root
-`install.sh` still installs the Python implementation and is the rollback
-path, not the default v0.3.0 install.
+User configuration remains compatible with 0.2.2. AIUsage is now Rust-only:
+the runtime, installer, updater, and test pipeline require no project Python
+implementation. v0.3.0 migrated the runtime from Python to Rust.
 
 The installer always installs `aiusage`. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
 
@@ -402,11 +402,11 @@ AIUsage is an unofficial community utility. The Codex reader uses the CLI's loca
 ## System requirements
 
 - Linux (tested)
-- Python 3.10 or newer
+- No additional runtime is required by the published Rust binary
 - ANSI-capable terminal; UTF-8 recommended
 - Corresponding CLI installed and legitimately authenticated by the user for real Codex/Grok usage
 
-macOS is untested and may work. Windows is not currently supported. Set `NO_COLOR` to disable colored foreground styles while retaining structural Unicode borders and progress bars.
+CI supports Linux amd64, Linux arm64, and macOS arm64. Windows is not currently supported. Set `NO_COLOR` to disable colored foreground styles while retaining structural Unicode borders and progress bars.
 
 ## Uninstall
 
@@ -427,12 +427,12 @@ Uninstall removes AIUsage program files but preserves `~/.config/aiusage/`. Remo
 ## Development and contributing
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e '.[dev]'
-python -m compileall -q src tests tools
-python -m unittest discover -s tests -v
-python tools/check_sensitive.py
+cd rust
+cargo fmt --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
+cargo run --locked --example check_sensitive
+cargo build --locked --release --bin aiusage
 ```
 
 Tests are fully offline and require no Codex or Grok login. New real provider adapters require reliable, verifiable sources; fabricated real usage and committed credentials are prohibited. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).

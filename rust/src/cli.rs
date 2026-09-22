@@ -174,14 +174,14 @@ pub fn dimensions(size: &str) -> Result<(usize, usize), &'static str> {
     if parts.len() != 2 {
         return Err("aiusage: --size must be WIDTHxHEIGHT");
     }
-    let values: Option<Vec<i64>> = parts.iter().map(|s| python_integer(s)).collect();
+    let values: Option<Vec<i64>> = parts.iter().map(|s| decimal_integer(s)).collect();
     let values = values.ok_or("aiusage: --size must be WIDTHxHEIGHT")?;
     if values.iter().any(|v| *v < 1) {
         return Err("aiusage: --size dimensions must be positive");
     }
     Ok((values[0] as usize, values[1] as usize))
 }
-pub fn python_integer(value: &str) -> Option<i64> {
+pub fn decimal_integer(value: &str) -> Option<i64> {
     let text = value.trim();
     let (sign, digits) = if let Some(s) = text.strip_prefix('-') {
         ("-", s)

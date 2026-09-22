@@ -2,29 +2,23 @@ use aiusage::cli;
 use std::process::Command;
 
 #[test]
-fn home_without_environment_matches_python() {
+fn home_without_environment_uses_account_database() {
     if std::env::var_os("AIUSAGE_TEST_HOME_FALLBACK").is_some() {
-        let expected = Command::new("python3")
-            .args(["-c", "import pathlib; print(pathlib.Path.home())"])
-            .output()
-            .unwrap();
-        assert!(expected.status.success());
-        assert_eq!(
-            aiusage::config::home_dir().to_string_lossy(),
-            String::from_utf8(expected.stdout).unwrap().trim_end()
-        );
+        let home = aiusage::config::home_dir();
+        assert!(home.is_absolute());
+        assert!(!home.as_os_str().is_empty());
         assert_eq!(
             aiusage::config::config_path(),
-            aiusage::config::home_dir().join(".config/aiusage/config.toml")
+            home.join(".config/aiusage/config.toml")
         );
         assert_eq!(
             aiusage::updater::cache_path(),
-            aiusage::config::home_dir().join(".cache/aiusage/latest.json")
+            home.join(".cache/aiusage/latest.json")
         );
         return;
     }
     let status = Command::new(std::env::current_exe().unwrap())
-        .args(["--exact", "home_without_environment_matches_python"])
+        .args(["--exact", "home_without_environment_uses_account_database"])
         .env("AIUSAGE_TEST_HOME_FALLBACK", "1")
         .env_remove("HOME")
         .env_remove("XDG_CONFIG_HOME")
@@ -49,46 +43,48 @@ fn dimensions_and_parser_contract() {
 }
 
 #[test]
-fn help_version_and_errors_match_python() {
+fn help_version_and_error_contract() {
     let home = tempfile::tempdir().unwrap();
-    for args in [
-        vec!["--help"],
-        vec!["--help", "--s"],
-        vec!["-hh"],
-        vec!["-hX"],
-        vec!["--help=X"],
-        vec!["--version"],
-        vec!["--bad"],
-        vec!["--"],
-        vec!["--", "--help"],
-        vec!["--size", "-1"],
-        vec!["--size", "-١"],
-        vec!["--size", "-"],
-        vec!["--size", "-.5"],
-        vec!["--size", "-1."],
-        vec!["--demo", "--snapshot", "--size", "-1"],
-        vec![],
-        vec!["--size"],
-        vec!["--demo", "--snapshot", "--size", "0x24"],
-        vec!["--demo", "--snapshot", "--size", "broken"],
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_aiusage"))
+            .args(args)
+            .env("HOME", home.path())
+            .env("XDG_CONFIG_HOME", home.path())
+            .output()
+            .unwrap()
+    };
+    let help = run(&["--help"]);
+    assert_eq!(help.status.code(), Some(0));
+    assert_eq!(String::from_utf8(help.stdout).unwrap(), cli::HELP);
+    assert!(help.stderr.is_empty());
+
+    let version = run(&["--version"]);
+    assert_eq!(version.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap(),
+        format!("AIUsage {}\n", aiusage::VERSION)
+    );
+
+    for (args, code, error) in [
+        (&["--bad"][..], 2, "unrecognized arguments: --bad"),
+        (&["--size"][..], 2, "argument --size: expected one argument"),
+        (&[][..], 2, "aiusage requires an interactive terminal"),
     ] {
-        let actual = Command::new(env!("CARGO_BIN_EXE_aiusage"))
-            .args(&args)
-            .env("HOME", home.path())
-            .env("XDG_CONFIG_HOME", home.path())
-            .output()
-            .unwrap();
-        let expected = Command::new("python3")
-            .args(["-m", "aiusage.cli"])
-            .args(&args)
-            .env("PYTHONPATH", concat!(env!("CARGO_MANIFEST_DIR"), "/../src"))
-            .env("HOME", home.path())
-            .env("XDG_CONFIG_HOME", home.path())
-            .output()
-            .unwrap();
-        assert_eq!(actual.status.code(), expected.status.code(), "{args:?}");
-        assert_eq!(actual.stdout, expected.stdout, "stdout {args:?}");
-        assert_eq!(actual.stderr, expected.stderr, "stderr {args:?}");
+        let output = run(args);
+        assert_eq!(output.status.code(), Some(code), "{args:?}");
+        assert!(
+            String::from_utf8(output.stderr).unwrap().contains(error),
+            "{args:?}"
+        );
+    }
+
+    for (value, error) in [
+        ("0x24", "dimensions must be positive"),
+        ("broken", "must be WIDTHxHEIGHT"),
+    ] {
+        let output = run(&["--demo", "--snapshot", "--size", value]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(String::from_utf8(output.stderr).unwrap().contains(error));
     }
 }
 

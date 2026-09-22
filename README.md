@@ -2,7 +2,7 @@
 
 [![Latest Release](https://img.shields.io/github/v/release/hyd1aa/aiusage?label=release)](https://github.com/hyd1aa/aiusage/releases/latest)
 [![CI](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml/badge.svg)](https://github.com/hyd1aa/aiusage/actions/workflows/ci.yml)
-![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10%E2%80%933.13-blue)
+![Rust 1.90](https://img.shields.io/badge/Rust-1.90-orange)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **简体中文** | [English](README_EN.md)
@@ -84,11 +84,11 @@ v0.3.0 起，正式发布是 Rust 二进制。从
 ```bash
 git clone https://github.com/hyd1aa/aiusage.git
 cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./rust/install.sh
+sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.0-linux-arm64 ./install.sh
 ai
 ```
 
-用户配置与 0.2.2 兼容。仓库根目录的 `install.sh` 仍安装 Python 实现，只用于回滚，不是 v0.3.0 的默认安装路径。
+用户配置与 0.2.2 兼容。AIUsage 当前实现、安装器、更新器和测试链路均为 Rust-only；v0.3.0 完成了从 Python 到 Rust 的运行时迁移。
 
 安装器始终安装 `aiusage`。如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。
 
@@ -364,11 +364,11 @@ AIUsage 是非官方社区工具。Codex reader 使用 CLI 的本地 app-server 
 ## 系统要求
 
 - Linux（已测试）
-- Python 3.10 或更高版本
+- Rust 发布二进制不需要额外运行时
 - 支持 ANSI 的终端，推荐 UTF-8
 - 查看真实 Codex / Grok 额度时，需要对应 CLI 已安装并由用户自行正规登录
 
-macOS 尚未验证，可能可以运行；Windows 当前不支持。设置 `NO_COLOR` 可关闭彩色前景样式，Unicode 边框和进度条仍保留。
+CI 支持 Linux amd64、Linux arm64 和 macOS arm64；Windows 当前不支持。设置 `NO_COLOR` 可关闭彩色前景样式，Unicode 边框和进度条仍保留。
 
 ## 卸载
 
@@ -389,12 +389,12 @@ sudo ./uninstall.sh
 ## 开发与贡献
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e '.[dev]'
-python -m compileall -q src tests tools
-python -m unittest discover -s tests -v
-python tools/check_sensitive.py
+cd rust
+cargo fmt --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
+cargo run --locked --example check_sensitive
+cargo build --locked --release --bin aiusage
 ```
 
 测试完全离线，不需要登录 Codex 或 Grok。新增真实 Provider adapter 必须有可靠、可验证的数据源，禁止伪造真实 usage 或提交凭据。详见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 和 [`CHANGELOG.md`](CHANGELOG.md)。
