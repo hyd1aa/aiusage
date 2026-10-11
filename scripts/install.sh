@@ -8,7 +8,7 @@
 set -euo pipefail
 
 REPO="hyd1aa/aiusage"
-DEFAULT_FALLBACK_VERSION="v0.4.0"
+DEFAULT_FALLBACK_VERSION="v0.4.1"
 
 echo "========================================================"
 echo "           正在安装 AIUsage (终端额度看板)...           "

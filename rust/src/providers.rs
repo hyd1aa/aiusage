@@ -374,47 +374,255 @@ pub fn read_codex_cancellable(
 }
 pub fn parse_gemini_oauth_token(data: &Value) -> Option<String> {
     data.get("token")
-        .and_then(|t| t.get("access_token"))
-        .and_then(|v| v.as_str())
+        .and_then(|t| {
+            t.get("access_token")
+                .and_then(|v| v.as_str())
+                .or_else(|| t.as_str())
+        })
+        .or_else(|| data.get("access_token").and_then(|v| v.as_str()))
         .map(|s| s.to_string())
 }
+
+fn classify_gemini_window(bucket: &Value) -> Option<String> {
+    if let Some(w) = bucket.get("window").and_then(|v| v.as_str()) {
+        let w_lower = w.to_ascii_lowercase();
+        if w_lower == "5h" || w_lower == "18000s" || w_lower == "18000" || w_lower == "300m" {
+            return Some("5h".into());
+        }
+        if w_lower == "weekly"
+            || w_lower == "week"
+            || w_lower == "7d"
+            || w_lower == "604800s"
+            || w_lower == "604800"
+            || w_lower == "10080m"
+        {
+            return Some("Week".into());
+        }
+    }
+    if let Some(sec) = bucket.get("windowDuration").and_then(|v| {
+        v.as_f64().or_else(|| {
+            v.as_str().and_then(|s| s.trim_end_matches('s').parse::<f64>().ok())
+        })
+    }) {
+        if (sec - 18000.0).abs() < 1.0 {
+            return Some("5h".into());
+        }
+        if (sec - 604800.0).abs() < 1.0 {
+            return Some("Week".into());
+        }
+        return Some(window_label(Some(sec / 60.0), "Cycle"));
+    }
+    if let Some(mins) = bucket.get("windowDurationMins").and_then(number) {
+        if (mins - 300.0).abs() < 1.0 {
+            return Some("5h".into());
+        }
+        if (mins - 10080.0).abs() < 1.0 {
+            return Some("Week".into());
+        }
+        return Some(window_label(Some(mins), "Cycle"));
+    }
+    if let Some(id) = bucket.get("bucketId").and_then(|v| v.as_str()) {
+        let id_lower = id.to_ascii_lowercase();
+        if id_lower.contains("5h") {
+            return Some("5h".into());
+        }
+        if id_lower.contains("weekly") || id_lower.contains("week") || id_lower.contains("7d") {
+            return Some("Week".into());
+        }
+    }
+    if let Some(name) = bucket.get("displayName").and_then(|v| v.as_str()) {
+        let name_lower = name.to_ascii_lowercase();
+        if name_lower.contains("5 hour")
+            || name_lower.contains("5-hour")
+            || name_lower.contains("five hour")
+            || name_lower.contains("5h")
+        {
+            return Some("5h".into());
+        }
+        if name_lower.contains("week")
+            || name_lower.contains("7 day")
+            || name_lower.contains("7-day")
+            || name_lower.contains("seven day")
+        {
+            return Some("Week".into());
+        }
+    }
+    bucket
+        .get("displayName")
+        .and_then(|s| s.as_str())
+        .or_else(|| bucket.get("bucketId").and_then(|s| s.as_str()))
+        .map(|s| s.to_string())
+}
+
+fn extract_remaining_percent(bucket: &Value) -> Option<i32> {
+    if let Some(fraction) = bucket.get("remainingFraction").and_then(number) {
+        return Some((fraction * 100.0).round_ties_even().clamp(0.0, 100.0) as i32);
+    }
+    if let Some(remaining) = bucket.get("remaining").and_then(number) {
+        return remaining_from_used(100.0 - remaining).ok();
+    }
+    if let Some(used) = bucket.get("usedPercent").and_then(number) {
+        return remaining_from_used(used).ok();
+    }
+    if let Some(used_frac) = bucket.get("usedFraction").and_then(number) {
+        return Some(((1.0 - used_frac) * 100.0).round_ties_even().clamp(0.0, 100.0) as i32);
+    }
+    if let (Some(rem), Some(total)) = (
+        bucket.get("remainingAmount").and_then(number),
+        bucket
+            .get("totalAmount")
+            .or_else(|| bucket.get("quotaAmount"))
+            .and_then(number),
+    ) {
+        if total > 0.0 {
+            return Some((rem / total * 100.0).round_ties_even().clamp(0.0, 100.0) as i32);
+        }
+    }
+    None
+}
+
+fn extract_reset_at(bucket: &Value) -> Option<f64> {
+    bucket
+        .get("resetTime")
+        .or_else(|| bucket.get("resetsAt"))
+        .or_else(|| bucket.get("reset_at"))
+        .and_then(timestamp)
+}
+
 pub fn gemini_quota_windows(reply: &Value) -> Result<Vec<RateLimitWindow>, String> {
     if reply.get("error").is_some() {
         return Err("Gemini quota unavailable".into());
     }
-    let mut windows = vec![];
-    if let Some(buckets) = reply.get("buckets").and_then(|b| b.as_array()) {
-        for bucket in buckets {
-            if let (Some(label), Some(remaining)) = (
-                bucket
-                    .get("displayName")
-                    .and_then(|s| s.as_str())
-                    .or_else(|| bucket.get("bucketId").and_then(|s| s.as_str())),
-                bucket.get("remaining").and_then(number),
-            ) {
-                let reset = bucket.get("resetTime").and_then(timestamp);
-                if let Ok(pct) = remaining_from_used(100.0 - remaining) {
-                    windows.push(RateLimitWindow {
-                        label: label.into(),
+    let reply = reply.get("response").unwrap_or(reply);
+    let mut raw_windows = vec![];
+
+    if let Some(groups) = reply.get("groups").and_then(|g| g.as_array()) {
+        let gemini_group = groups.iter().find(|g| {
+            g.get("displayName")
+                .and_then(|s| s.as_str())
+                .is_some_and(|name| name.to_ascii_lowercase().contains("gemini"))
+                || g.get("buckets")
+                    .and_then(|b| b.as_array())
+                    .is_some_and(|buckets| {
+                        buckets.iter().any(|b| {
+                            b.get("bucketId")
+                                .and_then(|id| id.as_str())
+                                .is_some_and(|id| id.to_ascii_lowercase().contains("gemini"))
+                        })
+                    })
+        });
+
+        let target_buckets: Vec<&Value> = if let Some(g) = gemini_group {
+            g.get("buckets")
+                .and_then(|b| b.as_array())
+                .map(|arr| arr.iter().collect())
+                .unwrap_or_default()
+        } else {
+            groups
+                .iter()
+                .filter_map(|g| g.get("buckets").and_then(|b| b.as_array()))
+                .flatten()
+                .collect()
+        };
+
+        for b in target_buckets {
+            if let (Some(label), Some(pct)) = (classify_gemini_window(b), extract_remaining_percent(b)) {
+                let reset = extract_reset_at(b);
+                raw_windows.push(RateLimitWindow {
+                    label,
+                    remaining_percent: pct,
+                    reset_at: reset,
+                });
+            }
+        }
+    }
+
+    if raw_windows.is_empty() {
+        if let Some(buckets) = reply.get("buckets").and_then(|b| b.as_array()) {
+            for b in buckets {
+                if let (Some(label), Some(pct)) = (classify_gemini_window(b), extract_remaining_percent(b)) {
+                    let reset = extract_reset_at(b);
+                    raw_windows.push(RateLimitWindow {
+                        label,
                         remaining_percent: pct,
                         reset_at: reset,
                     });
                 }
             }
         }
-    } else if let Some(quota_info) = reply.get("quotaInfo") {
-        if let Some(fraction) = quota_info.get("remainingFraction").and_then(number) {
-            let pct = (fraction * 100.0).round_ties_even().clamp(0.0, 100.0) as i32;
-            let reset = quota_info.get("resetTime").and_then(timestamp);
-            windows.push(RateLimitWindow {
-                label: "Quota".into(),
-                remaining_percent: pct,
-                reset_at: reset,
-            });
+    }
+
+    if raw_windows.is_empty() {
+        if let Some(quota_info) = reply.get("quotaInfo") {
+            if let Some(arr) = quota_info.as_array() {
+                for b in arr {
+                    if let (Some(label), Some(pct)) = (classify_gemini_window(b), extract_remaining_percent(b)) {
+                        let reset = extract_reset_at(b);
+                        raw_windows.push(RateLimitWindow {
+                            label,
+                            remaining_percent: pct,
+                            reset_at: reset,
+                        });
+                    }
+                }
+            } else if let Some(obj) = quota_info.as_object() {
+                for (k, v) in obj {
+                    if v.is_object() {
+                        let label = match k.to_ascii_lowercase().as_str() {
+                            "5h" | "18000s" => "5h".to_string(),
+                            "7d" | "week" | "weekly" | "604800s" => "Week".to_string(),
+                            _ => classify_gemini_window(v).unwrap_or_else(|| k.clone()),
+                        };
+                        if let Some(pct) = extract_remaining_percent(v) {
+                            let reset = extract_reset_at(v);
+                            raw_windows.push(RateLimitWindow {
+                                label,
+                                remaining_percent: pct,
+                                reset_at: reset,
+                            });
+                        }
+                    }
+                }
+                if raw_windows.is_empty() {
+                    if let Some(pct) = extract_remaining_percent(quota_info) {
+                        let label = classify_gemini_window(quota_info).unwrap_or_else(|| "Quota".into());
+                        let reset = extract_reset_at(quota_info);
+                        raw_windows.push(RateLimitWindow {
+                            label,
+                            remaining_percent: pct,
+                            reset_at: reset,
+                        });
+                    }
+                }
+            }
         }
     }
+
+    let mut five_h = None;
+    let mut week = None;
+    let mut others = vec![];
+    for w in raw_windows {
+        if w.label == "5h" && five_h.is_none() {
+            five_h = Some(w);
+        } else if w.label == "Week" && week.is_none() {
+            week = Some(w);
+        } else if w.label != "5h" && w.label != "Week" {
+            others.push(w);
+        }
+    }
+
+    let mut windows = vec![];
+    if let Some(h) = five_h {
+        windows.push(h);
+    }
+    if let Some(w) = week {
+        windows.push(w);
+    }
+    windows.extend(others);
+
     Ok(windows)
 }
+
 pub fn read_gemini(cancel: &std::sync::atomic::AtomicBool) -> Result<Vec<RateLimitWindow>, String> {
     if cancel.load(std::sync::atomic::Ordering::Relaxed) {
         return Err("usage read cancelled".into());
@@ -430,23 +638,43 @@ pub fn read_gemini(cancel: &std::sync::atomic::AtomicBool) -> Result<Vec<RateLim
     if let Ok(token_content) = fs::read_to_string(&token_path) {
         if let Ok(value) = serde_json::from_str::<Value>(&token_content) {
             if let Some(access_token) = parse_gemini_oauth_token(&value) {
+                let project_id = env::var("ANTIGRAVITY_PROJECT_ID")
+                    .ok()
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| {
+                        fs::read_to_string(home().join(".gemini/antigravity-cli/cache/default_project_id.txt"))
+                            .ok()
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                    })
+                    .unwrap_or_else(|| "default-cli-project".to_string());
                 let body =
-                    serde_json::to_string(&serde_json::json!({"project": "default-cli-project"}))
+                    serde_json::to_string(&serde_json::json!({"project": project_id}))
                         .unwrap_or_default();
                 let agent = ureq::AgentBuilder::new()
                     .timeout(Duration::from_secs(crate::DISCOVERY_TIMEOUT_SECONDS))
                     .build();
-                if let Ok(resp) = agent
-                    .post("https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary")
-                    .set("Authorization", &format!("Bearer {access_token}"))
-                    .set("Content-Type", "application/json")
-                    .send_string(&body)
-                {
-                    if let Ok(text) = resp.into_string() {
-                        if let Ok(quota_json) = serde_json::from_str::<Value>(&text) {
-                            if let Ok(windows) = gemini_quota_windows(&quota_json) {
-                                if !windows.is_empty() {
-                                    return Ok(windows);
+
+                for url in [
+                    "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+                    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+                ] {
+                    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                        return Err("usage read cancelled".into());
+                    }
+                    if let Ok(resp) = agent
+                        .post(url)
+                        .set("Authorization", &format!("Bearer {access_token}"))
+                        .set("Content-Type", "application/json")
+                        .set("User-Agent", "antigravity/1.3.3")
+                        .send_string(&body)
+                    {
+                        if let Ok(text) = resp.into_string() {
+                            if let Ok(quota_json) = serde_json::from_str::<Value>(&text) {
+                                if let Ok(windows) = gemini_quota_windows(&quota_json) {
+                                    if !windows.is_empty() {
+                                        return Ok(windows);
+                                    }
                                 }
                             }
                         }

@@ -5,6 +5,18 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-11
+
+### Fixed
+
+- Enhanced Gemini CLI (`gemini_cli`) quota parsing to support Google Code Assist `retrieveUserQuotaSummary` response formats, extracting 5h (`18000s`) and Week (`604800s`) window quotas, remaining percentages, and reset timestamps.
+- Added `User-Agent: antigravity/1.3.3` request header to quota requests against Google Code Assist endpoints (`daily-cloudcode-pa.googleapis.com` and `cloudcode-pa.googleapis.com`).
+- Ensured Gemini CLI renders standard-tier quota windows with progress bars and reset times matching the Codex layout instead of defaulting to a static "Ready" state.
+
+### Changed
+
+- Updated default binary runner configuration in Cargo metadata (`default-run = "aiusage"`).
+
 ## [0.4.0] - 2026-10-11
 
 ### Added
