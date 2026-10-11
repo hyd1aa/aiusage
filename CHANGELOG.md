@@ -5,24 +5,25 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
 ### Added
 
-- Added a bounded Provider discovery contract with installation, readiness,
-  usage-support, usability, and reason states.
-- Added startup discovery, five-minute periodic discovery, `R` discovery, and
-  persistent automatic discovery controls.
-- Added VPS-oriented discovery candidates for MiniMax, Qoder, Qoder CN,
-  CodeBuddy, and TraeCode.
-- Added a ZCode UI candidate explicitly marked ineligible until an official
-  headless CLI exists.
+- Added one-line VPS installer script (`scripts/install.sh`) supporting auto-detection of OS and CPU architecture (x86_64, aarch64, macOS).
+- Added GitHub Actions Release workflow (`.github/workflows/release.yml`) for multi-architecture musl static compilation and release distribution.
+- Added Gemini CLI (`gemini_cli`) provider support with automatic discovery of `agy`/`gemini` commands and local OAuth token credentials (`~/.gemini/antigravity-cli/antigravity-oauth-token`).
+- Added quota window and bucket parsing for Gemini CLI, with honest reporting for unlimited developer tiers without fabrications.
+- Registered Gemini CLI in auto-discovery, interactive provider manager menu, diagnostics, and demo mode.
+- Added bounded Provider discovery contract with installation, readiness, usage-support, usability, and reason states.
+- Added startup discovery, five-minute periodic discovery, `R` discovery, and persistent automatic discovery controls.
+- Added VPS-oriented discovery candidates for MiniMax, Qoder, Qoder CN, CodeBuddy, and TraeCode.
+- Added a ZCode UI candidate explicitly marked ineligible until an official headless CLI exists.
 
 ### Changed
 
-- Explicitly disabled Providers remain hidden across future discovery passes,
-  while removed CLIs and expired sessions retain their configured order.
+- Updated installation documentation in README and README_EN to prioritize the single-line installer command.
+- Explicitly disabled Providers remain hidden across future discovery passes, while removed CLIs and expired sessions retain their configured order.
 - Diagnostics now report sanitized discovery states for every Provider.
-- Removed Gemini and Antigravity, with safe cleanup of stale keys in existing
-  enabled, demo, disabled, and ordering configuration.
 
 ## [0.3.1] - 2026-09-22
 
