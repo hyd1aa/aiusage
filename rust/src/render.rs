@@ -335,6 +335,22 @@ pub fn selector(
     color: bool,
     discovery: &std::collections::HashMap<String, String>,
 ) -> Vec<String> {
+    selector_with_providers(
+        width, height, enabled, cursor, cfg, color, discovery, PROVIDERS,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn selector_with_providers(
+    width: usize,
+    height: usize,
+    enabled: &[String],
+    cursor: usize,
+    cfg: &Config,
+    color: bool,
+    discovery: &std::collections::HashMap<String, String>,
+    providers: &[(&str, &str)],
+) -> Vec<String> {
     let box_width = width.saturating_sub(4).clamp(30, 58);
     let inner = box_width - 2;
     let row = |s: &str| format!("│ {} │", pad(s, inner - 2));
@@ -342,7 +358,7 @@ pub fn selector(
         format!("┌{}┐", "─".repeat(inner)),
         row(tr(&cfg.language, "providers")),
     ];
-    for (index, (key, name)) in PROVIDERS.iter().enumerate() {
+    for (index, (key, name)) in providers.iter().enumerate() {
         let order = enabled.iter().position(|k| k == key).map(|n| n + 1);
         let mut value = format!(
             "{} [{}] {name}{}",

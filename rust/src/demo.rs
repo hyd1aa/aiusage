@@ -15,6 +15,7 @@ pub fn usage(key: &str, now: f64) -> Option<ProviderUsage> {
         "codebuddy" => &[("Credits", 66, 120.0)],
         "traecode" => &[("Cycle", 37, 240.0)],
         "zcode" => &[("Cycle", 55, 36.0)],
+        "gemini_cli" => &[("Quota", 85, 24.0)],
         _ => return None,
     };
     Some(ProviderUsage {

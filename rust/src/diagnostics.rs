@@ -30,8 +30,16 @@ pub fn collect(cfg: &Config, github_ok: Option<bool>) -> Vec<Row> {
             },
         ));
     }
-    for (key, name) in [("codex", "Codex usage"), ("grok", "Grok usage")] {
-        let readable = discovery[key].usable && !providers::read(key).windows.is_empty();
+    for (key, name) in [
+        ("codex", "Codex usage"),
+        ("grok", "Grok usage"),
+        ("gemini_cli", "Gemini CLI usage"),
+    ] {
+        let u = providers::read(key);
+        let readable = discovery[key].usable
+            && (!u.windows.is_empty()
+                || (key == "gemini_cli"
+                    && u.availability == crate::models::Availability::Available));
         rows.push((
             name.into(),
             readable,

@@ -162,13 +162,14 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | ✅ | VERIFIED |
 | Grok | ✅ | ✅ | ✅ | VERIFIED |
+| Gemini CLI (`agy`) | ✅ | ✅ | ✅ | VERIFIED |
 | MiniMax (`mmx`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
 | Qoder (`qoder`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
 | Qoder CN (`qodercn`) | ✅ | ✅ | ⏳ | 待真实环境验证 |
 | CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | 暂无可靠额度接口 |
 | TraeCode (`traecli`) | ✅ | ✅ | ❌ | 暂无可靠额度接口 |
 
-Grok 每周额度读取 Grok CLI 写入的本地结构化 billing log。
+Grok 每周额度读取 Grok CLI 写入的本地结构化 billing log。Gemini CLI（`agy`）自动检测本地登录态与 OAuth 凭据，读取 Code Assist 权限、配额状态或会话交互统计。
 
 “可自动识别”只表示 AIUsage 可以检测到 CLI，不代表已经能够读取真实额度。只有经过真实环境验证的 Provider 才会标记为真实额度已支持；`⏳` 明确表示仍在等待验证。真实模式绝不会使用 Demo 数据冒充额度，启用但没有可靠 reader 的 Provider 会如实显示“未安装”“不可用”或“不支持”。
 

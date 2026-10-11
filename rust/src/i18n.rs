@@ -33,6 +33,7 @@ pub fn tr<'a>(language: &str, key: &'a str) -> &'a str {
         "unsupported" => ("Usage unsupported", "额度不支持"),
         "needs_login" => ("Needs login", "需要登录"),
         "ready" => ("Ready", "已就绪"),
+        "available" => ("Available", "已就绪"),
         "timeout" => ("Discovery timeout", "探测超时"),
         "malformed" => ("Discovery error", "探测异常"),
         _ => return key,

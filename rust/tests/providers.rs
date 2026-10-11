@@ -87,3 +87,37 @@ fn cancellation_reaps_slow_owned_codex_without_waiting_eight_seconds() {
     assert!(start.elapsed() < Duration::from_secs(2));
     thread.join().unwrap();
 }
+
+#[test]
+fn gemini_token_parse_and_quota_windows() {
+    let token_json = json!({
+        "token": {
+            "access_token": "ya29.fake-token",
+            "token_type": "Bearer"
+        },
+        "auth_method": "consumer"
+    });
+    assert_eq!(
+        parse_gemini_oauth_token(&token_json),
+        Some("ya29.fake-token".into())
+    );
+    assert_eq!(parse_gemini_oauth_token(&json!({})), None);
+
+    let quota_response = json!({
+        "buckets": [
+            {
+                "bucketId": "gemini-flash",
+                "displayName": "Flash",
+                "remaining": 80.0,
+                "resetTime": "2026-10-15T12:00:00Z"
+            }
+        ]
+    });
+    let windows = gemini_quota_windows(&quota_response).unwrap();
+    assert_eq!(windows.len(), 1);
+    assert_eq!(windows[0].label, "Flash");
+    assert_eq!(windows[0].remaining_percent, 80);
+
+    let empty_windows = gemini_quota_windows(&json!({})).unwrap();
+    assert!(empty_windows.is_empty());
+}

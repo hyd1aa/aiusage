@@ -28,4 +28,5 @@ pub const PROVIDERS: &[(&str, &str)] = &[
     ("codebuddy", "CodeBuddy"),
     ("traecode", "TraeCode"),
     ("zcode", "ZCode"),
+    ("gemini_cli", "Gemini CLI"),
 ];

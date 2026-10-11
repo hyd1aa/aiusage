@@ -62,6 +62,7 @@ pub fn installed(key: &str) -> bool {
         "qodercn" => &["qodercn"],
         "codebuddy" => &["codebuddy", "cbc"],
         "traecode" => &["traecli"],
+        "gemini_cli" => &["agy", "gemini"],
         _ => &[],
     };
     commands.iter().any(|command| which(command).is_some())
@@ -72,8 +73,11 @@ fn home() -> PathBuf {
 pub fn grok_log() -> PathBuf {
     home().join(".grok/logs/unified.jsonl")
 }
+pub fn gemini_oauth_token() -> PathBuf {
+    home().join(".gemini/antigravity-cli/antigravity-oauth-token")
+}
 pub fn discover(key: &str) -> DiscoveryResult {
-    let supported = matches!(key, "codex" | "grok");
+    let supported = matches!(key, "codex" | "grok" | "gemini_cli");
     let present = installed(key);
     let ready = present
         && supported
@@ -83,6 +87,10 @@ pub fn discover(key: &str) -> DiscoveryResult {
                     || home().join(".codex/auth.json").is_file()
             }
             "grok" => grok_log().is_file() && File::open(grok_log()).is_ok(),
+            "gemini_cli" => {
+                env::var_os("GEMINI_API_KEY").is_some_and(|s| !s.is_empty())
+                    || (gemini_oauth_token().is_file() && File::open(gemini_oauth_token()).is_ok())
+            }
             _ => false,
         };
     classify_discovery(present, supported, ready)
@@ -108,7 +116,7 @@ pub fn discover_all() -> std::collections::HashMap<String, DiscoveryResult> {
             .or_insert_with(|| DiscoveryResult {
                 installed: false,
                 ready: false,
-                usage_supported: matches!(key, "codex" | "grok"),
+                usage_supported: matches!(key, "codex" | "grok" | "gemini_cli"),
                 usable: false,
                 reason: "timeout".into(),
             });
@@ -364,6 +372,97 @@ pub fn read_codex_cancellable(
     }
     result
 }
+pub fn parse_gemini_oauth_token(data: &Value) -> Option<String> {
+    data.get("token")
+        .and_then(|t| t.get("access_token"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+pub fn gemini_quota_windows(reply: &Value) -> Result<Vec<RateLimitWindow>, String> {
+    if reply.get("error").is_some() {
+        return Err("Gemini quota unavailable".into());
+    }
+    let mut windows = vec![];
+    if let Some(buckets) = reply.get("buckets").and_then(|b| b.as_array()) {
+        for bucket in buckets {
+            if let (Some(label), Some(remaining)) = (
+                bucket
+                    .get("displayName")
+                    .and_then(|s| s.as_str())
+                    .or_else(|| bucket.get("bucketId").and_then(|s| s.as_str())),
+                bucket.get("remaining").and_then(number),
+            ) {
+                let reset = bucket.get("resetTime").and_then(timestamp);
+                if let Ok(pct) = remaining_from_used(100.0 - remaining) {
+                    windows.push(RateLimitWindow {
+                        label: label.into(),
+                        remaining_percent: pct,
+                        reset_at: reset,
+                    });
+                }
+            }
+        }
+    } else if let Some(quota_info) = reply.get("quotaInfo") {
+        if let Some(fraction) = quota_info.get("remainingFraction").and_then(number) {
+            let pct = (fraction * 100.0).round_ties_even().clamp(0.0, 100.0) as i32;
+            let reset = quota_info.get("resetTime").and_then(timestamp);
+            windows.push(RateLimitWindow {
+                label: "Quota".into(),
+                remaining_percent: pct,
+                reset_at: reset,
+            });
+        }
+    }
+    Ok(windows)
+}
+pub fn read_gemini(cancel: &std::sync::atomic::AtomicBool) -> Result<Vec<RateLimitWindow>, String> {
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("usage read cancelled".into());
+    }
+    let token_path = gemini_oauth_token();
+    let has_token_file = token_path.is_file();
+    let api_key = env::var("GEMINI_API_KEY").ok().filter(|s| !s.is_empty());
+
+    if !has_token_file && api_key.is_none() {
+        return Err("Gemini credentials not found".into());
+    }
+
+    if let Ok(token_content) = fs::read_to_string(&token_path) {
+        if let Ok(value) = serde_json::from_str::<Value>(&token_content) {
+            if let Some(access_token) = parse_gemini_oauth_token(&value) {
+                let body =
+                    serde_json::to_string(&serde_json::json!({"project": "default-cli-project"}))
+                        .unwrap_or_default();
+                let agent = ureq::AgentBuilder::new()
+                    .timeout(Duration::from_secs(crate::DISCOVERY_TIMEOUT_SECONDS))
+                    .build();
+                if let Ok(resp) = agent
+                    .post("https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary")
+                    .set("Authorization", &format!("Bearer {access_token}"))
+                    .set("Content-Type", "application/json")
+                    .send_string(&body)
+                {
+                    if let Ok(text) = resp.into_string() {
+                        if let Ok(quota_json) = serde_json::from_str::<Value>(&text) {
+                            if let Ok(windows) = gemini_quota_windows(&quota_json) {
+                                if !windows.is_empty() {
+                                    return Ok(windows);
+                                }
+                            }
+                        }
+                    }
+                }
+                return Ok(vec![]);
+            }
+        }
+    }
+
+    if api_key.is_some() {
+        return Ok(vec![]);
+    }
+
+    Err("Gemini credentials unavailable".into())
+}
 pub fn read(key: &str) -> ProviderUsage {
     read_cancellable(key, &std::sync::atomic::AtomicBool::new(false))
 }
@@ -396,6 +495,7 @@ pub fn read_cancellable(key: &str, cancel: &std::sync::atomic::AtomicBool) -> Pr
                 )
             }),
         "grok" => read_grok(&grok_log()),
+        "gemini_cli" => read_gemini(cancel),
         _ => {
             usage.availability = Availability::NotSupported;
             return usage;

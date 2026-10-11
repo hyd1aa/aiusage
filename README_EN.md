@@ -200,13 +200,14 @@ aiusage --demo --snapshot --size 80x24
 | --- | --- | --- | --- | --- |
 | Codex | ✅ | ✅ | ✅ | VERIFIED |
 | Grok | ✅ | ✅ | ✅ | VERIFIED |
+| Gemini CLI (`agy`) | ✅ | ✅ | ✅ | VERIFIED |
 | MiniMax (`mmx`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
 | Qoder (`qoder`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
 | Qoder CN (`qodercn`) | ✅ | ✅ | ⏳ | Auto-detectable; real quota pending verification (`DISCOVERY_ONLY`) |
 | CodeBuddy (`codebuddy` / `cbc`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
 | TraeCode (`traecli`) | ✅ | ✅ | ❌ | Auto-detectable; no reliable quota interface (`DISCOVERY_ONLY`) |
 
-Grok weekly quota data is read from the local structured billing log written by the Grok CLI.
+Grok weekly quota data is read from the local structured billing log written by the Grok CLI. Gemini CLI (`agy`) automatically detects local login status and OAuth credentials, retrieving Code Assist entitlements, quota states, or session metrics.
 
 “Auto-detectable” means AIUsage can detect the CLI; it does not mean real quota reading is supported. Only Providers validated in a real environment receive the supported-real-usage mark. The `⏳` symbol explicitly means validation is pending. Real mode never substitutes demo values, and an enabled Provider without a verified reader is reported honestly as `Not installed`, `Unavailable`, or `Not supported`.
 

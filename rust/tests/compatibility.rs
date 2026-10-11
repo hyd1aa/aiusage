@@ -523,7 +523,7 @@ fn selectors_golden_matrix() {
             case["cursor"].as_u64().unwrap() as usize,
         );
         let actual = if case["op"] == "selector" {
-            render::selector(
+            render::selector_with_providers(
                 w,
                 h,
                 &cfg.demo_providers,
@@ -531,6 +531,7 @@ fn selectors_golden_matrix() {
                 &cfg,
                 true,
                 &Default::default(),
+                &aiusage::PROVIDERS[..8],
             )
         } else {
             render::timezone_selector(w, h, &options, c, &cfg, true)
