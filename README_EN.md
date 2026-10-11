@@ -11,7 +11,24 @@ A lightweight, responsive terminal dashboard for AI CLI usage and rate limits, e
 
 View remaining percentages, usage windows, and reset times from clients such as Codex and Grok in one SSH, VPS, or Linux terminal dashboard.
 
-[Introduction](#introduction) · [tmux 3-Pane Setup](#tmux-three-pane) · [Preview](#preview) · [Installation](#installation) · [After installation](#after-installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration)
+[Quick Install](#-quick-install) · [Introduction](#introduction) · [tmux 3-Pane Setup](#tmux-three-pane) · [Preview](#preview) · [After installation](#after-installation) · [Quick start](#quick-start) · [Support](#provider-support) · [Themes](#themes) · [Shortcuts](#keyboard-shortcuts) · [Configuration](#configuration) · [Development & Manual Build](#development-and-manual-build)
+
+## ⚡ Quick Install
+
+On a clean Linux VPS or terminal without Rust or build tools installed, run this single command to install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyd1aa/aiusage/main/scripts/install.sh | bash
+```
+
+Once installed, it works out of the box:
+
+```bash
+ai          # Open unified management menu (recommended)
+aiusage     # Launch quota dashboard directly
+```
+
+> **Note**: The script automatically detects your system architecture (Linux x86_64 / aarch64, or macOS), downloads the precompiled static musl binary from the latest GitHub Release, and installs it to `/usr/local/bin/`. If another program already owns `ai`, it will never overwrite it; use `aiusage --menu` to access the management menu.
 
 ## Introduction
 
@@ -91,32 +108,7 @@ There is one outer box; providers do not get individual boxes. The box takes its
 
 The default demo shows Codex, Grok, MiniMax, Qoder, CodeBuddy, and TraeCode. Except for Codex and Grok, these are UI fixtures only; their percentages are not account data. See the full 80×24 text capture at [`docs/screenshots/demo-80x24.txt`](docs/screenshots/demo-80x24.txt).
 
-## Installation
-
-From v0.3.0 the published runtime is a Rust binary. Download the file for
-your platform from the
-[GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest):
-
-- `aiusage-v0.3.1-linux-amd64` (static musl)
-- `aiusage-v0.3.1-linux-arm64` (static musl)
-- `aiusage-v0.3.1-macos-arm64`
-
-Then:
-
-```bash
-git clone https://github.com/hyd1aa/aiusage.git
-cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.1-linux-arm64 ./install.sh
-ai
-```
-
-User configuration remains compatible with 0.2.2. AIUsage is now Rust-only:
-the runtime, installer, updater, and test pipeline require no project Python
-implementation. v0.3.0 migrated the runtime from Python to Rust.
-
-The installer always installs `aiusage`. It also installs `ai` as a convenient management shortcut when that command is free. If another program already owns `ai`, installation still succeeds and the existing command is never overwritten. User configuration is preserved.
-
-The installer only manages AIUsage-owned files and does not modify permissions on existing shared directories such as `/usr/local/bin` or `/usr/local/lib`.
+User configuration remains compatible with 0.2.2. AIUsage is now 100% Rust-only (no Python or Node runtime dependencies). The installer always installs `aiusage`. It also installs `ai` as a convenient management shortcut when that command is free; if another program already owns `ai`, installation still succeeds and never overwrites it. User configuration is preserved. The installer only manages AIUsage-owned files and does not modify permissions on existing shared directories. For manual building from source, see [Development & Manual Build](#development-and-manual-build) below.
 
 ## After installation
 
@@ -424,15 +416,43 @@ sudo ./uninstall.sh
 
 Uninstall removes AIUsage program files but preserves `~/.config/aiusage/`. Remove that directory explicitly only if you also want to delete preferences.
 
-## Development and contributing
+## Development and Manual Build
+
+If you want to contribute or build AIUsage from source on your machine:
+
+### System Prerequisites
+- **Build Tools**: `gcc` / `clang`, `make`, `git`
+- **Rust Toolchain**: Rust 1.90.0+ (recommended via [rustup](https://rustup.rs/))
+- **musl Static Toolchain (Recommended)**:
+  AIUsage releases use static musl libc binaries with zero external shared library dependencies. To build locally:
+  - Debian / Ubuntu: `sudo apt-get install -y musl-tools`
+  - CentOS / RHEL: `sudo yum install -y musl-libc-devel`
+  - Add musl target:
+    ```bash
+    rustup target add x86_64-unknown-linux-musl    # for x86_64
+    rustup target add aarch64-unknown-linux-musl   # for aarch64
+    ```
+
+### Build and Test Steps
 
 ```bash
-cd rust
+# 1. Clone the repository
+git clone https://github.com/hyd1aa/aiusage.git
+cd aiusage/rust
+
+# 2. Check format and linter
 cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
+
+# 3. Run test suite
 cargo test --locked
 cargo run --locked --example check_sensitive
-cargo build --locked --release --bin aiusage
+
+# 4. Build release binary (example for Linux x86_64 musl)
+cargo build --locked --release --bin aiusage --target x86_64-unknown-linux-musl
+
+# 5. Install the locally built binary
+sudo AIUSAGE_BINARY=target/x86_64-unknown-linux-musl/release/aiusage ../install.sh
 ```
 
 Tests are fully offline and require no Codex or Grok login. New real provider adapters require reliable, verifiable sources; fabricated real usage and committed credentials are prohibited. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).

@@ -7,7 +7,11 @@ PACKAGE="$PREFIX/lib/aiusage"
 if [ -d "$PACKAGE" ] && [ ! -L "$PACKAGE" ] && [ -f "$PACKAGE/.aiusage-rust-owned" ]; then
     for name in aiusage ai; do
         target="$PREFIX/bin/$name"
-        if [ -L "$target" ] && [ "$(readlink "$target")" = '../lib/aiusage/aiusage' ]; then
+        if [ -L "$target" ]; then
+            case "$(readlink "$target" 2>/dev/null || true)" in
+                *aiusage*) rm -f -- "$target" ;;
+            esac
+        elif [ -f "$target" ] && [ "$name" = "aiusage" ]; then
             rm -f -- "$target"
         fi
     done

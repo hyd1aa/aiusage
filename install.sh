@@ -24,6 +24,7 @@ owned_launcher() {
 
 if [ ! -f "$BINARY" ] || [ ! -x "$BINARY" ]; then
     echo 'Error: build or supply a verified AIUsage Rust binary first.' >&2
+    echo 'Tip: For automated one-line installation on clean VPS, run: ./scripts/install.sh' >&2
     exit 1
 fi
 if [ -L "$PACKAGE" ] || { [ -e "$PACKAGE" ] && ! { [ -d "$PACKAGE" ] && [ -f "$PACKAGE/.aiusage-rust-owned" ]; }; }; then

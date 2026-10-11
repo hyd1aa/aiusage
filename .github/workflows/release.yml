@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.3.2)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            target: x86_64-unknown-linux-musl
+            platform: linux-amd64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            target: aarch64-unknown-linux-musl
+            platform: linux-arm64
+          - runner: macos-14
+            arch: arm64
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify native architecture and setup Rust toolchain
+        run: |
+          test "$(uname -m)" = '${{ matrix.arch }}'
+          rustup toolchain install 1.90.0 --profile minimal --component rustfmt,clippy
+          rustup target add --toolchain 1.90.0 '${{ matrix.target }}'
+
+      - name: Install musl compiler (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build standalone release binary
+        env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
+        run: |
+          cargo build --locked --release --bin aiusage --target '${{ matrix.target }}'
+
+      - name: Smoke-test binary
+        run: |
+          binary="target/${{ matrix.target }}/release/aiusage"
+          version=$(awk -F '"' '$1 ~ /^version = / { print $2; exit }' Cargo.toml)
+          test "$("$binary" --version)" = "AIUsage $version"
+          "$binary" --help
+          "$binary" --demo --snapshot --size 80x24
+          if [ '${{ runner.os }}' = 'Linux' ]; then
+            ! readelf -d "$binary" | grep NEEDED
+          else
+            otool -L "$binary"
+          fi
+
+      - name: Package release artifacts
+        run: |
+          version=$(awk -F '"' '$1 ~ /^version = / { print $2; exit }' Cargo.toml)
+          tag="${{ inputs.tag || github.ref_name }}"
+          if echo "$tag" | grep -q '^v[0-9]'; then
+            ver_tag="$tag"
+          else
+            ver_tag="v$version"
+          fi
+
+          mkdir -p ../artifacts
+
+          binary="target/${{ matrix.target }}/release/aiusage"
+          standalone="../artifacts/aiusage-${ver_tag}-${{ matrix.platform }}"
+          cp "$binary" "$standalone"
+          chmod +x "$standalone"
+
+          pkg_dir="target/package/aiusage-${ver_tag}-${{ matrix.platform }}"
+          mkdir -p "$pkg_dir"
+          cp "$binary" "$pkg_dir/aiusage"
+          cp ../install.sh ../uninstall.sh "$pkg_dir/"
+          cp -r ../scripts "$pkg_dir/" 2>/dev/null || true
+          cp ../README.md ../LICENSE "$pkg_dir/" 2>/dev/null || true
+
+          tar -C target/package -czf "../artifacts/aiusage-${ver_tag}-${{ matrix.platform }}.tar.gz" "aiusage-${ver_tag}-${{ matrix.platform }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.platform }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifacts-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: |
+          sha256sum aiusage-* > SHA256SUMS.txt
+          tag="${{ inputs.tag || github.ref_name }}"
+          if [ -n "$tag" ] && echo "$tag" | grep -q '^v[0-9]'; then
+            cp SHA256SUMS.txt "aiusage-${tag}.sha256"
+          fi
+          ls -la
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

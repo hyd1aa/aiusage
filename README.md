@@ -11,7 +11,24 @@
 
 在 SSH、VPS 和 Linux 终端中统一查看 Codex、Grok 等 AI CLI 的剩余额度、使用窗口和重置时间。
 
-[介绍](#介绍) · [tmux 三分屏](#tmux-three-pane) · [效果预览](#效果预览) · [一键安装](#一键安装) · [安装完成后](#安装完成后) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件)
+[快速安装](#-快速安装) · [介绍](#介绍) · [tmux 三分屏](#tmux-three-pane) · [效果预览](#效果预览) · [安装完成后](#安装完成后) · [快速使用](#快速使用) · [支持情况](#当前支持情况) · [主题](#主题切换) · [快捷键](#快捷键) · [配置](#配置文件) · [开发者贡献与手动编译](#开发者贡献与手动编译)
+
+## ⚡ 快速安装
+
+在全新干净的 Linux VPS / 终端上，无需预装 Rust、Node 或编译工具链，一行命令傻瓜式安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyd1aa/aiusage/main/scripts/install.sh | bash
+```
+
+安装完成后开箱即用：
+
+```bash
+ai          # 打开统一管理菜单（首选）
+aiusage     # 直接打开实时额度看板
+```
+
+> **说明**：脚本会自动识别系统架构（Linux x86_64 / aarch64，以及 macOS），自动从 GitHub 最新 Release 中拉取对应的预编译静态二进制包并解压安装到 `/usr/local/bin/`。如果系统中已有第三方程序占用 `ai`，安装器绝不会覆盖该命令，此时可通过 `aiusage --menu` 稳定打开管理菜单。
 
 ## 介绍
 
@@ -69,30 +86,7 @@ AIUsage 最初就是围绕 tmux 三分屏工作流设计的。一个实用的布
 默认 Demo 展示 Codex、Grok、MiniMax、Qoder、CodeBuddy 和 TraeCode。除 Codex、Grok 外，其余项目当前仅用于 UI 演示，百分比不能视为真实账号额度。
 
 
-## 一键安装
-
-v0.3.0 起，正式发布是 Rust 二进制。从
-[GitHub Release](https://github.com/hyd1aa/aiusage/releases/latest)
-下载对应平台文件：
-
-- `aiusage-v0.3.1-linux-amd64`（static musl）
-- `aiusage-v0.3.1-linux-arm64`（static musl）
-- `aiusage-v0.3.1-macos-arm64`
-
-然后：
-
-```bash
-git clone https://github.com/hyd1aa/aiusage.git
-cd aiusage
-sudo AIUSAGE_BINARY=/path/to/aiusage-v0.3.1-linux-arm64 ./install.sh
-ai
-```
-
-用户配置与 0.2.2 兼容。AIUsage 当前实现、安装器、更新器和测试链路均为 Rust-only；v0.3.0 完成了从 Python 到 Rust 的运行时迁移。
-
-安装器始终安装 `aiusage`。如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。
-
-安装器只管理 AIUsage 自己的文件，不会修改已有 `/usr/local/bin`、`/usr/local/lib` 等公共目录的权限。
+用户配置与 0.2.2 兼容。AIUsage 当前实现、安装器、更新器和测试链路均为纯 Rust（无 Python 或 Node 运行时依赖）。安装器始终安装 `aiusage`；如果系统中没有其他程序占用 `ai`，还会安装 `ai` 作为快捷管理入口；若 `ai` 已属于第三方程序，安装仍会成功且绝不会覆盖该命令，用户配置也会保留。安装器只管理 AIUsage 自己的文件，不会修改已有 `/usr/local/bin`、`/usr/local/lib` 等公共目录的权限。手动从源码编译安装的方法请见文末[开发者贡献与手动编译](#开发者贡献与手动编译)。
 
 ## 安装完成后
 
@@ -386,15 +380,48 @@ sudo ./uninstall.sh
 
 卸载只删除 AIUsage 程序，默认保留 `~/.config/aiusage/`。如需同时删除偏好，请自行明确删除该目录。
 
-## 开发与贡献
+## 开发者贡献与手动编译
+
+如果你希望参与项目开发，或者在特定环境从源码自行编译与安装：
+
+### 系统底层依赖梳理
+
+若直接从源码编译，需准备以下底层环境与编译工具：
+
+- **基础构建工具**：`gcc` / `clang`, `make`, `git`
+- **Rust 工具链**：Rust 1.90.0+（推荐通过 [rustup](https://rustup.rs/) 安装）
+- **静态 musl 交叉/本地工具链（推荐）**：
+  AIUsage 发布二进制基于 musl libc 静态编译（生成独立无外部动态链接依赖的二进制）。源码构建时需安装 musl 编译器并添加 Rust 对应 target：
+  - Debian / Ubuntu: `sudo apt-get install -y musl-tools`
+  - CentOS / RHEL: `sudo yum install -y musl-libc-devel`
+  - Alpine: 已内置 musl 环境
+  - 添加编译 Target：
+    ```bash
+    rustup target add x86_64-unknown-linux-musl    # x86_64 平台
+    rustup target add aarch64-unknown-linux-musl   # aarch64 平台
+    ```
+
+### 本地编译与测试步骤
 
 ```bash
-cd rust
+# 1. 克隆代码仓库
+git clone https://github.com/hyd1aa/aiusage.git
+cd aiusage/rust
+
+# 2. 代码格式化与 Lint 检查
 cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
+
+# 3. 运行自动化测试与敏感数据扫描
 cargo test --locked
 cargo run --locked --example check_sensitive
-cargo build --locked --release --bin aiusage
+
+# 4. 本地编译静态 Release 二进制（以当前机器架构为例）
+# Linux x86_64:
+cargo build --locked --release --bin aiusage --target x86_64-unknown-linux-musl
+
+# 5. 使用安装脚本完成本地安装
+sudo AIUSAGE_BINARY=target/x86_64-unknown-linux-musl/release/aiusage ../install.sh
 ```
 
 测试完全离线，不需要登录 Codex 或 Grok。新增真实 Provider adapter 必须有可靠、可验证的数据源，禁止伪造真实 usage 或提交凭据。详见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 和 [`CHANGELOG.md`](CHANGELOG.md)。
