@@ -5,7 +5,12 @@ the structure of [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-## [0.4.1] - 2026-10-11
+### Fixed
+
+- Added automatic OAuth token refresh mechanism for Gemini CLI (`gemini_cli`), supporting both proactive expiration renewal (<= 60s) and reactive HTTP 401 retry renewal via `https://oauth2.googleapis.com/token`.
+- Refreshed credentials and updated expiry timestamps are automatically written back to `~/.gemini/antigravity-cli/antigravity-oauth-token` with strict `0600` permissions.
+- Fixed error handling in `providers.rs` when quota requests fail: quota fetch failures now return explicit errors rather than silently degrading to empty windows, preventing the dashboard from incorrectly replacing rate limit bars with "Ready" (已就绪) and preserving stale window evidence.
+- Retained detailed sanitized failure reasons in debug mode (`AIUSAGE_DEBUG=1`) and the management diagnostics menu (`aiusage --menu`).
 
 ### Fixed
 

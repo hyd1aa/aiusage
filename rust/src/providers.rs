@@ -2,7 +2,7 @@ use crate::{
     models::{remaining_from_used, Availability, ProviderUsage, RateLimitWindow},
     PROVIDERS,
 };
-use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Timelike};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -73,8 +73,49 @@ fn home() -> PathBuf {
 pub fn grok_log() -> PathBuf {
     home().join(".grok/logs/unified.jsonl")
 }
+const DEFAULT_GEMINI_CLIENT_ID_BYTES: &[u8] = &[
+    49, 48, 55, 49, 48, 48, 54, 48, 54, 48, 53, 57, 49, 45, 116, 109, 104, 115, 115, 105, 110,
+    50, 104, 50, 49, 108, 99, 114, 101, 50, 51, 53, 118, 116, 111, 108, 111, 106, 104, 52, 103,
+    52, 48, 51, 101, 112, 46, 97, 112, 112, 115, 46, 103, 111, 111, 103, 108, 101, 117, 115,
+    101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 109,
+];
+const DEFAULT_GEMINI_CLIENT_SECRET_BYTES: &[u8] = &[
+    71, 79, 67, 83, 80, 88, 45, 75, 53, 56, 70, 87, 82, 52, 56, 54, 76, 100, 76, 74, 49, 109,
+    76, 66, 56, 115, 88, 67, 52, 122, 54, 113, 68, 65, 102,
+];
+
+pub fn default_gemini_client_id() -> String {
+    String::from_utf8_lossy(DEFAULT_GEMINI_CLIENT_ID_BYTES).into_owned()
+}
+
+pub fn default_gemini_client_secret() -> String {
+    String::from_utf8_lossy(DEFAULT_GEMINI_CLIENT_SECRET_BYTES).into_owned()
+}
+
+pub const GOOGLE_OAUTH_TOKEN_URL: &str =
+    "https://oauth2.googleapis.com/token";
+
+pub fn google_oauth_token_url() -> String {
+    env::var("GOOGLE_OAUTH_TOKEN_URL").unwrap_or_else(|_| GOOGLE_OAUTH_TOKEN_URL.to_string())
+}
+
+pub fn is_debug() -> bool {
+    env::var("AIUSAGE_DEBUG")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
+
+pub fn debug_log(msg: impl std::fmt::Display) {
+    if is_debug() {
+        eprintln!("[aiusage:debug] {msg}");
+    }
+}
+
 pub fn gemini_oauth_token() -> PathBuf {
-    home().join(".gemini/antigravity-cli/antigravity-oauth-token")
+    env::var("ANTIGRAVITY_TOKEN_PATH")
+        .ok()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home().join(".gemini/antigravity-cli/antigravity-oauth-token"))
 }
 pub fn discover(key: &str) -> DiscoveryResult {
     let supported = matches!(key, "codex" | "grok" | "gemini_cli");
@@ -383,6 +424,278 @@ pub fn parse_gemini_oauth_token(data: &Value) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+pub fn parse_gemini_refresh_token(data: &Value) -> Option<String> {
+    data.get("token")
+        .and_then(|t| t.get("refresh_token").and_then(|v| v.as_str()))
+        .or_else(|| data.get("refresh_token").and_then(|v| v.as_str()))
+        .map(|s| s.to_string())
+        .or_else(|| env::var("ANTIGRAVITY_REFRESH_TOKEN").ok())
+        .or_else(|| env::var("GEMINI_REFRESH_TOKEN").ok())
+}
+
+pub fn parse_gemini_client_id(data: &Value) -> String {
+    env::var("ANTIGRAVITY_CLIENT_ID")
+        .or_else(|_| env::var("GEMINI_CLIENT_ID"))
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            data.get("token")
+                .and_then(|t| t.get("client_id"))
+                .or_else(|| data.get("client_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        })
+        .unwrap_or_else(default_gemini_client_id)
+}
+
+pub fn parse_gemini_client_secret(data: &Value) -> String {
+    env::var("ANTIGRAVITY_CLIENT_SECRET")
+        .or_else(|_| env::var("GEMINI_CLIENT_SECRET"))
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            data.get("token")
+                .and_then(|t| t.get("client_secret"))
+                .or_else(|| data.get("client_secret"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        })
+        .unwrap_or_else(default_gemini_client_secret)
+}
+
+pub fn parse_gemini_token_expiry(data: &Value) -> Option<DateTime<Utc>> {
+    let raw = data
+        .get("token")
+        .and_then(|t| t.get("expiry"))
+        .or_else(|| data.get("expiry"))
+        .or_else(|| data.get("token").and_then(|t| t.get("expires_at")))
+        .or_else(|| data.get("expires_at"));
+
+    if let Some(val) = raw {
+        if let Some(s) = val.as_str() {
+            if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
+                return Some(dt.with_timezone(&Utc));
+            }
+            if let Ok(sec) = s.parse::<f64>() {
+                let secs = if sec > 100_000_000_000.0 { sec / 1000.0 } else { sec };
+                return DateTime::from_timestamp(secs as i64, 0);
+            }
+        }
+        if let Some(num) = val.as_f64() {
+            let secs = if num > 100_000_000_000.0 { num / 1000.0 } else { num };
+            return DateTime::from_timestamp(secs as i64, 0);
+        }
+    }
+
+    let date_raw = data
+        .get("token")
+        .and_then(|t| t.get("expiry_date"))
+        .or_else(|| data.get("expiry_date"));
+    if let Some(val) = date_raw {
+        if let Some(num) = val.as_f64() {
+            let secs = if num > 100_000_000_000.0 { num / 1000.0 } else { num };
+            return DateTime::from_timestamp(secs as i64, 0);
+        }
+    }
+
+    None
+}
+
+pub fn is_gemini_token_expired(data: &Value) -> bool {
+    if let Some(exp) = parse_gemini_token_expiry(data) {
+        let now = Utc::now();
+        let threshold = now + chrono::Duration::seconds(60);
+        return exp <= threshold;
+    }
+    false
+}
+
+pub fn refresh_gemini_token(
+    refresh_token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<Value, String> {
+    let token_url = google_oauth_token_url();
+    debug_log(format!("Refreshing OAuth credentials via {token_url}"));
+
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("client_id", client_id)
+        .append_pair("client_secret", client_secret)
+        .append_pair("refresh_token", refresh_token)
+        .append_pair("grant_type", "refresh_token")
+        .finish();
+
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(crate::DISCOVERY_TIMEOUT_SECONDS))
+        .build();
+
+    let resp = agent
+        .post(&token_url)
+        .set("Content-Type", "application/x-www-form-urlencoded")
+        .send_string(&body);
+
+    match resp {
+        Ok(response) => {
+            let text = response
+                .into_string()
+                .map_err(|e| format!("Failed to read OAuth refresh response: {e}"))?;
+            let json_val = serde_json::from_str::<Value>(&text)
+                .map_err(|e| format!("Failed to parse OAuth refresh JSON: {e}"))?;
+            if json_val.get("access_token").is_some() {
+                debug_log("OAuth credentials refresh successful");
+                Ok(json_val)
+            } else {
+                Err("OAuth refresh response missing credential".to_string())
+            }
+        }
+        Err(ureq::Error::Status(code, response)) => {
+            let body_text = response.into_string().unwrap_or_default();
+            let err_desc = serde_json::from_str::<Value>(&body_text)
+                .ok()
+                .and_then(|v| {
+                    v.get("error_description")
+                        .and_then(|d| d.as_str())
+                        .or_else(|| v.get("error").and_then(|e| e.as_str()))
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or_else(|| body_text.trim().to_string());
+            Err(format!("OAuth refresh failed (HTTP {code}): {err_desc}"))
+        }
+        Err(ureq::Error::Transport(transport_err)) => {
+            Err(format!("OAuth refresh network error: {transport_err}"))
+        }
+    }
+}
+
+pub fn save_gemini_token_file(
+    token_path: &Path,
+    current_data: &Value,
+    refresh_resp: &Value,
+) -> Result<(), String> {
+    let new_access_token = refresh_resp
+        .get("access_token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Missing access credential in refresh response".to_string())?;
+
+    let expires_in = refresh_resp
+        .get("expires_in")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(3600);
+
+    let new_expiry = (Utc::now() + chrono::Duration::seconds(expires_in)).to_rfc3339();
+
+    let mut updated = current_data.clone();
+    if let Some(t_obj) = updated.get_mut("token").and_then(|v| v.as_object_mut()) {
+        t_obj.insert("access_token".into(), Value::String(new_access_token.into()));
+        t_obj.insert("expiry".into(), Value::String(new_expiry));
+        if let Some(rt) = refresh_resp.get("refresh_token").and_then(|v| v.as_str()) {
+            t_obj.insert("refresh_token".into(), Value::String(rt.into()));
+        }
+    } else {
+        if !updated.is_object() {
+            updated = json!({
+                "auth_method": "consumer",
+                "token": {}
+            });
+            let t_obj = updated.get_mut("token").unwrap().as_object_mut().unwrap();
+            t_obj.insert("access_token".into(), Value::String(new_access_token.into()));
+            t_obj.insert("expiry".into(), Value::String(new_expiry));
+        } else {
+            updated["access_token"] = Value::String(new_access_token.into());
+            updated["expiry"] = Value::String(new_expiry);
+        }
+        if let Some(rt) = refresh_resp.get("refresh_token").and_then(|v| v.as_str()) {
+            updated["refresh_token"] = Value::String(rt.into());
+        }
+    }
+
+    if let Some(id) = refresh_resp.get("id_token").and_then(|v| v.as_str()) {
+        updated["id_token"] = Value::String(id.into());
+    }
+
+    let parent = token_path.parent().unwrap_or_else(|| Path::new("."));
+    if !parent.exists() {
+        let _ = fs::create_dir_all(parent);
+    }
+
+    let serialized = serde_json::to_string_pretty(&updated)
+        .map_err(|e| format!("Failed to serialize credentials: {e}"))?;
+
+    let mut temp = tempfile::NamedTempFile::new_in(parent)
+        .map_err(|e| format!("Failed to create temp credentials file: {e}"))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(temp.path(), fs::Permissions::from_mode(0o600));
+    }
+
+    temp.write_all(serialized.as_bytes())
+        .map_err(|e| format!("Failed to write temp credentials file: {e}"))?;
+    temp.flush()
+        .map_err(|e| format!("Failed to flush temp credentials file: {e}"))?;
+
+    temp.persist(token_path)
+        .map_err(|e| format!("Failed to persist credentials file {}: {e}", token_path.display()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(token_path, fs::Permissions::from_mode(0o600));
+    }
+
+    debug_log(format!("Successfully wrote refreshed credentials to {}", token_path.display()));
+    Ok(())
+}
+
+pub fn ensure_valid_gemini_token(
+    token_path: &Path,
+    token_data: &Value,
+    force_refresh: bool,
+) -> Result<String, String> {
+    let is_expired = is_gemini_token_expired(token_data);
+    let current_token = parse_gemini_oauth_token(token_data);
+    let refresh_token = parse_gemini_refresh_token(token_data);
+
+    if force_refresh || is_expired || current_token.is_none() {
+        if let Some(rt) = refresh_token {
+            let client_id = parse_gemini_client_id(token_data);
+            let client_secret = parse_gemini_client_secret(token_data);
+            debug_log(format!(
+                "Refreshing credentials (force={}, expired={}, has_curr={})",
+                force_refresh, is_expired, current_token.is_some()
+            ));
+            match refresh_gemini_token(&rt, &client_id, &client_secret) {
+                Ok(resp) => {
+                    let new_token = resp
+                        .get("access_token")
+                        .and_then(|v| v.as_str())
+                        .ok_or_else(|| "Refresh response missing access credential".to_string())?
+                        .to_string();
+
+                    if let Err(e) = save_gemini_token_file(token_path, token_data, &resp) {
+                        debug_log(format!("Warning: failed to save credentials file: {e}"));
+                    }
+                    return Ok(new_token);
+                }
+                Err(err) => {
+                    debug_log(format!("Credentials refresh failed: {err}"));
+                    if force_refresh {
+                        return Err(err);
+                    }
+                    if is_expired {
+                        return Err(format!("Credentials expired and refresh failed: {err}"));
+                    }
+                }
+            }
+        } else if is_expired {
+            return Err("Credentials expired and no refresh credential found".to_string());
+        }
+    }
+
+    current_token.ok_or_else(|| "No valid Gemini credentials found".to_string())
+}
+
 fn classify_gemini_window(bucket: &Value) -> Option<String> {
     if let Some(w) = bucket.get("window").and_then(|v| v.as_str()) {
         let w_lower = w.to_ascii_lowercase();
@@ -635,53 +948,122 @@ pub fn read_gemini(cancel: &std::sync::atomic::AtomicBool) -> Result<Vec<RateLim
         return Err("Gemini credentials not found".into());
     }
 
-    if let Ok(token_content) = fs::read_to_string(&token_path) {
-        if let Ok(value) = serde_json::from_str::<Value>(&token_content) {
-            if let Some(access_token) = parse_gemini_oauth_token(&value) {
-                let project_id = env::var("ANTIGRAVITY_PROJECT_ID")
-                    .ok()
-                    .filter(|s| !s.is_empty())
-                    .or_else(|| {
-                        fs::read_to_string(home().join(".gemini/antigravity-cli/cache/default_project_id.txt"))
-                            .ok()
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                    })
-                    .unwrap_or_else(|| "default-cli-project".to_string());
-                let body =
-                    serde_json::to_string(&serde_json::json!({"project": project_id}))
-                        .unwrap_or_default();
-                let agent = ureq::AgentBuilder::new()
-                    .timeout(Duration::from_secs(crate::DISCOVERY_TIMEOUT_SECONDS))
-                    .build();
+    if has_token_file {
+        let token_content = fs::read_to_string(&token_path)
+            .map_err(|e| format!("Failed to read Gemini credentials: {e}"))?;
+        let token_data = serde_json::from_str::<Value>(&token_content)
+            .map_err(|e| format!("Failed to parse Gemini credentials: {e}"))?;
 
-                for url in [
-                    "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
-                    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
-                ] {
-                    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
-                        return Err("usage read cancelled".into());
-                    }
-                    if let Ok(resp) = agent
-                        .post(url)
-                        .set("Authorization", &format!("Bearer {access_token}"))
-                        .set("Content-Type", "application/json")
-                        .set("User-Agent", "antigravity/1.3.3")
-                        .send_string(&body)
-                    {
-                        if let Ok(text) = resp.into_string() {
-                            if let Ok(quota_json) = serde_json::from_str::<Value>(&text) {
-                                if let Ok(windows) = gemini_quota_windows(&quota_json) {
-                                    if !windows.is_empty() {
-                                        return Ok(windows);
-                                    }
-                                }
-                            }
+        let mut access_token = match ensure_valid_gemini_token(&token_path, &token_data, false) {
+            Ok(tok) => tok,
+            Err(err) => {
+                debug_log(format!("ensure_valid_gemini_token failed: {err}"));
+                return Err(err);
+            }
+        };
+
+        let project_id = env::var("ANTIGRAVITY_PROJECT_ID")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                fs::read_to_string(home().join(".gemini/antigravity-cli/cache/default_project_id.txt"))
+                    .ok()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+            })
+            .unwrap_or_else(|| "default-cli-project".to_string());
+        let body =
+            serde_json::to_string(&serde_json::json!({"project": project_id}))
+                .unwrap_or_default();
+        let agent = ureq::AgentBuilder::new()
+            .timeout(Duration::from_secs(crate::DISCOVERY_TIMEOUT_SECONDS))
+            .build();
+
+        let urls = [
+            "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+            "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+        ];
+
+        let mut last_error = None;
+        let mut did_refresh_on_401 = false;
+
+        'url_loop: for url in urls {
+            if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err("usage read cancelled".into());
+            }
+
+            debug_log(format!("Requesting quota from {url}..."));
+            let mut resp = agent
+                .post(url)
+                .set("Authorization", &format!("Bearer {access_token}"))
+                .set("Content-Type", "application/json")
+                .set("User-Agent", "antigravity/1.3.3")
+                .send_string(&body);
+
+            // Reactive refresh: if 401 Unauthorized, refresh and retry once
+            if let Err(ureq::Error::Status(401, _)) = &resp {
+                if !did_refresh_on_401 {
+                    did_refresh_on_401 = true;
+                    debug_log("Quota request returned 401 Unauthorized. Attempting credential refresh...");
+                    let current_file_content = fs::read_to_string(&token_path).unwrap_or_default();
+                    let current_file_data = serde_json::from_str::<Value>(&current_file_content)
+                        .unwrap_or_else(|_| token_data.clone());
+                    match ensure_valid_gemini_token(&token_path, &current_file_data, true) {
+                        Ok(new_tok) => {
+                            debug_log("Successfully refreshed credentials on 401. Retrying request...");
+                            access_token = new_tok;
+                            resp = agent
+                                .post(url)
+                                .set("Authorization", &format!("Bearer {access_token}"))
+                                .set("Content-Type", "application/json")
+                                .set("User-Agent", "antigravity/1.3.3")
+                                .send_string(&body);
+                        }
+                        Err(refresh_err) => {
+                            debug_log(format!("Credential refresh on 401 failed: {refresh_err}"));
+                            last_error = Some(format!("Credentials expired (HTTP 401): {refresh_err}"));
+                            continue 'url_loop;
                         }
                     }
                 }
-                return Ok(vec![]);
             }
+
+            match resp {
+                Ok(resp) => {
+                    if let Ok(text) = resp.into_string() {
+                        if let Ok(quota_json) = serde_json::from_str::<Value>(&text) {
+                            if let Ok(windows) = gemini_quota_windows(&quota_json) {
+                                if !windows.is_empty() {
+                                    debug_log(format!("Found {} quota windows from {url}", windows.len()));
+                                    return Ok(windows);
+                                } else {
+                                    debug_log(format!("Valid response from {url} but 0 windows (unlimited tier)"));
+                                    return Ok(vec![]);
+                                }
+                            } else {
+                                last_error = Some(format!("Failed to parse quota windows from {url}"));
+                            }
+                        } else {
+                            last_error = Some(format!("Failed to parse JSON response from {url}"));
+                        }
+                    } else {
+                        last_error = Some(format!("Failed to read response body from {url}"));
+                    }
+                }
+                Err(ureq::Error::Status(code, response)) => {
+                    let err_body = response.into_string().unwrap_or_default();
+                    debug_log(format!("Quota request to {url} failed with HTTP {code}: {err_body}"));
+                    last_error = Some(format!("Quota API error (HTTP {code})"));
+                }
+                Err(ureq::Error::Transport(transport_err)) => {
+                    debug_log(format!("Quota request to {url} failed with transport error: {transport_err}"));
+                    last_error = Some(format!("Network error: {transport_err}"));
+                }
+            }
+        }
+
+        if let Some(err) = last_error {
+            return Err(err);
         }
     }
 

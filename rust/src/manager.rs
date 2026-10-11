@@ -601,7 +601,17 @@ fn detail_label(language: &str, detail: &str) -> String {
         "disabled_by_user" => "用户已禁用",
         "timeout" => "探测超时",
         "malformed" => "探测结果异常",
-        _ => detail,
+        _ => {
+            if detail.starts_with("Credentials expired") {
+                "凭证已过期"
+            } else if detail.starts_with("Network error") {
+                "网络错误"
+            } else if detail.starts_with("Quota API error") {
+                "接口请求失败"
+            } else {
+                detail
+            }
+        }
     }
     .into()
 }
@@ -611,6 +621,7 @@ fn diagnostic_label(name: &str) -> &str {
         "Config" => "配置文件",
         "Codex usage" => "Codex 额度",
         "Grok usage" => "Grok 额度",
+        "Gemini CLI usage" => "Gemini CLI 额度",
         "System timezone" => "系统时区",
         "Display timezone" => "显示时区",
         "GitHub" => "GitHub 连接",

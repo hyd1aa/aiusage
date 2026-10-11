@@ -39,11 +39,19 @@ pub fn collect(cfg: &Config, github_ok: Option<bool>) -> Vec<Row> {
         let readable = discovery[key].usable
             && (!u.windows.is_empty()
                 || (key == "gemini_cli"
-                    && u.availability == crate::models::Availability::Available));
+                    && u.availability == crate::models::Availability::Available
+                    && u.error.is_none()));
+        let detail = if readable {
+            "readable".into()
+        } else if let Some(err) = &u.error {
+            err.clone()
+        } else {
+            "unavailable".into()
+        };
         rows.push((
             name.into(),
             readable,
-            if readable { "readable" } else { "unavailable" }.into(),
+            detail,
         ));
     }
     let now = crate::cli::now();

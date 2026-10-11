@@ -210,3 +210,169 @@ fn gemini_token_parse_and_quota_windows() {
     assert_eq!(windows_qi[1].remaining_percent, 90);
 }
 
+#[test]
+fn gemini_refresh_token_and_expiry_check() {
+    let nested = json!({
+        "token": {
+            "access_token": "ya29.nested",
+            "refresh_token": "1//nested-refresh",
+            "expiry": "2020-01-01T00:00:00+08:00"
+        }
+    });
+    assert_eq!(
+        parse_gemini_refresh_token(&nested),
+        Some("1//nested-refresh".into())
+    );
+    assert!(is_gemini_token_expired(&nested));
+
+    let top_level = json!({
+        "access_token": "ya29.top",
+        "refresh_token": "1//top-refresh",
+        "expiry": "2099-01-01T00:00:00Z"
+    });
+    assert_eq!(
+        parse_gemini_refresh_token(&top_level),
+        Some("1//top-refresh".into())
+    );
+    assert!(!is_gemini_token_expired(&top_level));
+
+    // Numeric timestamp in milliseconds
+    let numeric_past = json!({
+        "token": {
+            "expiry_date": 1577836800000.0 // 2020-01-01
+        }
+    });
+    assert!(is_gemini_token_expired(&numeric_past));
+
+    let numeric_future = json!({
+        "token": {
+            "expiry_date": 4102444800000.0 // 2100-01-01
+        }
+    });
+    assert!(!is_gemini_token_expired(&numeric_future));
+
+    let no_expiry = json!({
+        "token": {
+            "access_token": "ya29.ok"
+        }
+    });
+    assert_eq!(parse_gemini_token_expiry(&no_expiry), None);
+    assert!(!is_gemini_token_expired(&no_expiry));
+}
+
+#[test]
+fn gemini_token_file_save_and_permissions() {
+    let dir = tempfile::tempdir().unwrap();
+    let token_path = dir.path().join("antigravity-oauth-token");
+    let current_data = json!({
+        "token": {
+            "access_token": "old-token",
+            "token_type": "Bearer",
+            "refresh_token": "1//old-refresh",
+            "expiry": "2020-01-01T00:00:00Z"
+        },
+        "auth_method": "consumer"
+    });
+    let refresh_resp = json!({
+        "access_token": "new-ya29-token",
+        "expires_in": 3600,
+        "token_type": "Bearer"
+    });
+
+    save_gemini_token_file(&token_path, &current_data, &refresh_resp).unwrap();
+
+    let saved_content = fs::read_to_string(&token_path).unwrap();
+    let saved_json: serde_json::Value = serde_json::from_str(&saved_content).unwrap();
+
+    assert_eq!(
+        saved_json["token"]["access_token"],
+        "new-ya29-token"
+    );
+    assert_eq!(
+        saved_json["token"]["refresh_token"],
+        "1//old-refresh"
+    );
+    assert_eq!(
+        saved_json["auth_method"],
+        "consumer"
+    );
+    assert!(!is_gemini_token_expired(&saved_json));
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = fs::metadata(&token_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
+}
+
+#[test]
+fn gemini_mock_token_refresh() {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let server_url = format!("http://127.0.0.1:{port}/token");
+
+    let handle = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut req = String::new();
+        let mut buffer = [0u8; 1024];
+        loop {
+            let n = stream.read(&mut buffer).unwrap();
+            if n == 0 { break; }
+            req.push_str(&String::from_utf8_lossy(&buffer[..n]));
+            if req.contains("grant_type=refresh_token") {
+                break;
+            }
+        }
+        assert!(req.contains("grant_type=refresh_token"));
+        assert!(req.contains("refresh_token=test-rt"));
+
+        let body = r#"{"access_token":"refreshed-access-token","expires_in":3600}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(response.as_bytes()).unwrap();
+    });
+
+    std::env::set_var("GOOGLE_OAUTH_TOKEN_URL", &server_url);
+    let result = refresh_gemini_token("test-rt", "test-client-id", "test-client-secret");
+    std::env::remove_var("GOOGLE_OAUTH_TOKEN_URL");
+    handle.join().unwrap();
+
+    assert!(result.is_ok());
+    let json_val = result.unwrap();
+    assert_eq!(json_val["access_token"], "refreshed-access-token");
+    assert_eq!(json_val["expires_in"], 3600);
+}
+
+#[test]
+fn gemini_read_expired_without_refresh_returns_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let token_path = dir.path().join("antigravity-oauth-token");
+    let expired_no_refresh = json!({
+        "token": {
+            "access_token": "expired-token",
+            "expiry": "2020-01-01T00:00:00Z"
+        }
+    });
+    fs::write(&token_path, expired_no_refresh.to_string()).unwrap();
+
+    std::env::set_var("ANTIGRAVITY_TOKEN_PATH", &token_path);
+    std::env::remove_var("GEMINI_API_KEY");
+
+    let cancel = std::sync::atomic::AtomicBool::new(false);
+    let result = read_gemini(&cancel);
+
+    std::env::remove_var("ANTIGRAVITY_TOKEN_PATH");
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.contains("Credentials expired"));
+}
+
+
